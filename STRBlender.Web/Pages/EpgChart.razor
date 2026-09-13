@@ -1,0 +1,145 @@
+@using STRBlender.Core.Domain.Models
+@using STRBlender.Core.Domain.Services
+@using System.Text
+@using System.Globalization
+
+<svg width="@Width" height="@Height" viewBox="@($"0 0 {Width} {Height}")"
+     xmlns="http://www.w3.org/2000/svg" style="background:white; font-family: sans-serif;">
+    @((MarkupString)staticSvg)
+    @((MarkupString)peakSvg)
+</svg>
+
+@code {
+    [Parameter] public List<Peak> FinalPeaks { get; set; } = new();
+    [Parameter] public List<string> Loci { get; set; } = new();
+    [Parameter] public RgbColor Color { get; set; } = RgbColor.Blue;
+    [Parameter] public int Threshold { get; set; } = 100;
+    [Parameter] public double Width { get; set; } = 900;
+    [Parameter] public double Height { get; set; } = 260;
+    [Parameter] public int SamplePoints { get; set; } = 800;
+
+    private string staticSvg = "";
+    private string peakSvg = "";
+    private bool changedThisPass;
+
+    private List<Peak>? lastPeaks;
+    private List<string>? lastLoci;
+    private RgbColor? lastColor;
+    private int lastThreshold;
+    private double lastWidth, lastHeight;
+    private int lastSamplePoints;
+    private bool hasBuilt;
+
+    protected override void OnParametersSet()
+    {
+        bool unchanged = hasBuilt
+            && ReferenceEquals(FinalPeaks, lastPeaks)
+            && ReferenceEquals(Loci, lastLoci)
+            && Equals(Color, lastColor)
+            && Threshold == lastThreshold
+            && Width == lastWidth
+            && Height == lastHeight
+            && SamplePoints == lastSamplePoints;
+
+        changedThisPass = !unchanged;
+        if (unchanged) return;
+
+        var model = EpgChartBuilder.BuildChannelChart(FinalPeaks, Loci, Color, Threshold, Width, Height, samplePoints: SamplePoints);
+
+        // Two independent fragments. Even though both are rebuilt whenever
+        // anything changes, Blazor diffs each MarkupString region separately —
+        // if the static fragment's text comes out identical (true whenever
+        // only FinalPeaks changed, since axes/ticks/locus bars don't depend
+        // on peak data), Blazor leaves that part of the DOM untouched, so the
+        // chart frame no longer flashes on every Generate/Resample.
+        staticSvg = BuildStaticGroup(model);
+        peakSvg = BuildPeakGroup(model);
+
+        lastPeaks = FinalPeaks;
+        lastLoci = Loci;
+        lastColor = Color;
+        lastThreshold = Threshold;
+        lastWidth = Width;
+        lastHeight = Height;
+        lastSamplePoints = SamplePoints;
+        hasBuilt = true;
+    }
+
+    protected override bool ShouldRender() => changedThisPass;
+
+    /// Axes, X ticks, and locus bars — depend only on Loci/Width/Height/Color,
+    /// never on peak data, so this fragment's text is stable across Generate/
+    /// Resample calls as long as the kit selection doesn't change.
+    private string BuildStaticGroup(EpgChartModel model)
+    {
+        var sb = new StringBuilder();
+
+        sb.Append(Line(model.YAxisLine, "black", 0.8));
+        sb.Append(Line(model.XAxisLine, "black", 0.8));
+
+        foreach (var tick in model.XTicks)
+        {
+            sb.Append(Line(tick.TickMark, "black", 0.7));
+            sb.Append(Text(tick.LabelCenter.X, tick.LabelCenter.Y + 8, 9, false, "middle", tick.LabelText));
+        }
+
+        foreach (var bar in model.LocusBars)
+        {
+            sb.Append(Inv($"<rect x=\"{bar.X}\" y=\"{bar.Y}\" width=\"{bar.Width}\" height=\"{bar.Height}\" rx=\"3\" ry=\"3\" fill=\"{Rgba(Color, 110)}\" />"));
+            sb.Append(Text(bar.LabelCenter.X, bar.LabelCenter.Y + 4, 11, true, "middle", bar.LocusName));
+        }
+
+        return sb.ToString();
+    }
+
+    /// Curve, threshold line, Y-axis ticks, and peak labels — all genuinely
+    /// depend on peak data (the Y-axis auto-scales to the tallest peak), so
+    /// this fragment legitimately refreshes on every Generate/Resample.
+    private string BuildPeakGroup(EpgChartModel model)
+    {
+        var sb = new StringBuilder();
+
+        sb.Append(Line(model.ThresholdLine, "rgba(255,120,120,0.6)", 0.8, "4,3"));
+
+        sb.Append(Inv($"<polygon points=\"{PointsString(model.FillPolygonPoints)}\" fill=\"{Rgba(Color, 60)}\" stroke=\"none\" />"));
+        sb.Append(Inv($"<polyline points=\"{PointsString(model.CurveLinePoints)}\" fill=\"none\" stroke=\"{Rgb(Color)}\" stroke-width=\"0.8\" stroke-linejoin=\"round\" />"));
+
+        foreach (var tick in model.YTicks)
+        {
+            sb.Append(Line(tick.TickMark, "black", 0.7));
+            sb.Append(Text(tick.LabelCenter.X, tick.LabelCenter.Y + 3, 9, false, "start", tick.LabelText));
+        }
+
+        foreach (var pl in model.PeakLabels)
+        {
+            sb.Append(Line(pl.StemLine, "rgb(210,210,210)", 0.8));
+            sb.Append(Inv($"<rect x=\"{pl.BoxX}\" y=\"{pl.BoxY}\" width=\"{pl.BoxWidth}\" height=\"{pl.BoxHeight}\" rx=\"4\" ry=\"4\" fill=\"{Rgba(Color, 20)}\" stroke=\"{Rgba(Color, 180)}\" stroke-width=\"0.8\" />"));
+            sb.Append(Text(pl.BoxX + pl.BoxWidth / 2, pl.BoxY + pl.BoxHeight / 2 - 2, 8, false, "middle", pl.AlleleText));
+            sb.Append(Text(pl.BoxX + pl.BoxWidth / 2, pl.BoxY + pl.BoxHeight / 2 + 9, 8, false, "middle", pl.HeightText));
+        }
+
+        return sb.ToString();
+    }
+
+    private static string Line(ChartLineSegment l, string stroke, double width, string? dash = null)
+    {
+        string dashAttr = dash != null ? $" stroke-dasharray=\"{dash}\"" : "";
+        return Inv($"<line x1=\"{l.X1}\" y1=\"{l.Y1}\" x2=\"{l.X2}\" y2=\"{l.Y2}\" stroke=\"{stroke}\" stroke-width=\"{width}\"{dashAttr} />");
+    }
+
+    private static string Text(double x, double y, int fontSize, bool bold, string anchor, string content)
+    {
+        string weight = bold ? " font-weight=\"bold\"" : "";
+        return Inv($"<text x=\"{x}\" y=\"{y}\" font-size=\"{fontSize}\"{weight} text-anchor=\"{anchor}\" fill=\"black\">{Escape(content)}</text>");
+    }
+
+    private static string PointsString(List<ChartPoint> points) =>
+        string.Join(" ", points.Select(p => Inv($"{p.X:F1},{p.Y:F1}")));
+
+    private static string Rgb(RgbColor c) => $"rgb({c.R},{c.G},{c.B})";
+    private static string Rgba(RgbColor c, int alpha0to255) => Inv($"rgba({c.R},{c.G},{c.B},{alpha0to255 / 255.0:F3})");
+
+    private static string Escape(string s) => s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+
+    private static string Inv(FormattableString s) => FormattableString.Invariant(s);
+}

@@ -1,0 +1,200 @@
+﻿<UserControl x:Class="STRBlender.Presentation.Views.NocGameView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:STRBlender.Presentation.ViewModels"
+             xmlns:controls="clr-namespace:STRBlender.Presentation.Views.Controls">
+
+    <UserControl.DataContext>
+        <local:NocGameViewModel />
+    </UserControl.DataContext>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Left Panel - Scrollable -->
+        <ScrollViewer Grid.Column="0" Margin="10" 
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Padding="0,0,8,0">
+
+            <StackPanel Margin="0,0,0,12">
+
+                <!-- Kit -->
+                <Label Content="Kit" FontWeight="SemiBold"/>
+                <ComboBox x:Name="comboBox_Kit" 
+                          SelectionChanged="ComboBox_Kit_SelectionChanged" 
+                          Height="28" Margin="0,0,0,8"/>
+
+                <!-- Database -->
+                <Label Content="Database" FontWeight="SemiBold"/>
+                <ComboBox x:Name="comboBox_Database"
+                          ItemsSource="{Binding DatabaseOptions}"
+                          SelectedItem="{Binding SelectedDatabase, Mode=TwoWay}"
+                          Height="28" Margin="0,0,0,12"/>
+
+                <Separator Margin="0,4,0,8"/>
+
+                <!-- Contributors Range -->
+                <Label Content="Contributors" FontWeight="SemiBold"/>
+                <Grid Margin="0,2,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Min" HorizontalAlignment="Center" FontSize="10"/>
+                        <ComboBox ItemsSource="{Binding ContributorOptions}"
+                                  SelectedItem="{Binding MinContributors, Mode=TwoWay}"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="–" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Max" HorizontalAlignment="Center" FontSize="10"/>
+                        <ComboBox ItemsSource="{Binding ContributorOptions}"
+                                  SelectedItem="{Binding MaxContributors, Mode=TwoWay}"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Degradation Range -->
+                <Label Content="Degradation" FontWeight="SemiBold"/>
+                <Grid Margin="0,2,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Min" HorizontalAlignment="Center" FontSize="10"/>
+                        <TextBox Text="{Binding MinDegradation, Mode=TwoWay, StringFormat=F4}" TextAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="–" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Max" HorizontalAlignment="Center" FontSize="10"/>
+                        <TextBox Text="{Binding MaxDegradation, Mode=TwoWay, StringFormat=F4}" TextAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Proportion Range -->
+                <Label Content="Proportion Range" FontWeight="SemiBold"/>
+                <Grid Margin="0,2,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Min" HorizontalAlignment="Center" FontSize="10"/>
+                        <TextBox Text="{Binding MinProportion, Mode=TwoWay, StringFormat=F2}" TextAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="–" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Max" HorizontalAlignment="Center" FontSize="10"/>
+                        <TextBox Text="{Binding MaxProportion, Mode=TwoWay, StringFormat=F2}" TextAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Template Range -->
+                <Label Content="Template" FontWeight="SemiBold"/>
+                <Grid Margin="0,2,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Min" HorizontalAlignment="Center" FontSize="10"/>
+                        <TextBox Text="{Binding MinTemplate, Mode=TwoWay, StringFormat=F0}" TextAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="–" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Max" HorizontalAlignment="Center" FontSize="10"/>
+                        <TextBox Text="{Binding MaxTemplate, Mode=TwoWay, StringFormat=F0}" TextAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <Separator Margin="0,4,0,8"/>
+
+                <!-- Generate Button -->
+                <Button Content="Generate Mixture" 
+                        Click="btn_Generate_Click"
+                        FontWeight="Bold" Padding="12,10" Margin="0,0,0,6"/>
+
+                <Separator Margin="0,8,0,8"/>
+
+                <!-- NOC Guess -->
+                <Label Content="Your NOC Guess" FontWeight="SemiBold"/>
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,8">
+                    <RadioButton x:Name="rb_Noc1" Content="1" GroupName="NocGuess" Margin="0,0,10,0" FontSize="14"/>
+                    <RadioButton x:Name="rb_Noc2" Content="2" GroupName="NocGuess" Margin="0,0,10,0" FontSize="14"/>
+                    <RadioButton x:Name="rb_Noc3" Content="3" GroupName="NocGuess" Margin="0,0,10,0" FontSize="14"/>
+                    <RadioButton x:Name="rb_Noc4" Content="4" GroupName="NocGuess" Margin="0,0,10,0" FontSize="14"/>
+                    <RadioButton x:Name="rb_Noc5" Content="5" GroupName="NocGuess" FontSize="14"/>
+                </StackPanel>
+
+                <Button Content="Submit Guess"
+                        Click="btn_Submit_Click"
+                        Padding="12,10" Margin="0,0,0,6"
+                        IsEnabled="{Binding MixtureGenerated}"/>
+
+                <!-- Result Display + Integrated Checkboxes -->
+                <Border x:Name="border_Result" 
+                        CornerRadius="6" Padding="10" Margin="0,8,0,8"
+                        Visibility="{Binding ResultVisible}">
+                    <StackPanel>
+                        <TextBlock x:Name="txt_ResultVerdict"
+                                   Text="{Binding ResultVerdict}"
+                                   FontSize="16" FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{Binding ResultColor}"/>
+
+                        <TextBlock Text="{Binding ResultDetail}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,8,0,0"
+                                   FontSize="11"
+                                   x:Name="txt_ResultDetail"/>
+
+                        <!-- Integrated Contributor Checkboxes -->
+                        <StackPanel x:Name="panel_ContributorOverlays" 
+                                    Visibility="Collapsed" Margin="0,10,0,0">
+                            <ItemsControl x:Name="list_ContributorChecks"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Separator Margin="0,8,0,8"/>
+
+                <!-- Score -->
+                <Label Content="Score" FontWeight="SemiBold"/>
+                <Grid Margin="0,4,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                        <TextBlock Text="Correct" FontSize="10" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding ScoreCorrect}" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" Foreground="Green"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                        <TextBlock Text="Wrong" FontSize="10" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding ScoreWrong}" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" Foreground="Red"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                        <TextBlock Text="Streak" FontSize="10" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding Streak}" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" Foreground="DodgerBlue"/>
+                    </StackPanel>
+                </Grid>
+
+                <Button Content="Reset Score" Click="btn_ResetScore_Click"
+                        Padding="6,4" Margin="0,8,0,0" FontSize="10"/>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Right Side: Shared EPG Plot -->
+        <controls:EpgPlotHost x:Name="epgHost" Grid.Column="1" Margin="8"/>
+    </Grid>
+</UserControl>

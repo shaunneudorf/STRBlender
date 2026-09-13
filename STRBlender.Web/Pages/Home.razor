@@ -1,0 +1,325 @@
+@page "/"
+@using STRBlender.Core.Application
+@using STRBlender.Core.Domain.Common
+@using STRBlender.Core.Domain.Models
+@using STRBlender.Core.Domain.Services
+@using STRBlender.Core.Infrastructure.Data
+@inject HttpClient Http
+
+<PageTitle>STRBlender — EPG Simulator</PageTitle>
+
+<div class="container-fluid py-2">
+    <div class="row">
+        <div class="col-lg-4 col-xl-3 mb-3 compact-sidebar">
+            <h4 class="mb-3">EPG Simulator</h4>
+
+            <div class="mb-2">
+                <label class="form-label fw-semibold">Kit</label>
+                <select class="form-select form-select-sm" value="@selectedKit" @onchange="OnKitChanged">
+                    @foreach (var kit in KitConfig.Kits.Keys)
+                    {
+                        <option value="@kit">@kit</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label fw-semibold">Template (RFU): @((int)template)</label>
+                <input type="range" class="form-range" min="1" max="10000" step="1"
+                       @bind="template" @bind:event="oninput" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Contributors: @contributorCount</label>
+                <input type="range" class="form-range" min="1" max="10" step="1"
+                       value="@contributorCount" @onchange="OnContributorCountChanged" />
+            </div>
+
+            <div style="max-height: 55vh; overflow-y: auto;">
+                @for (int i = 0; i < contributors.Count; i++)
+                {
+                    var idx = i;
+                    var c = contributors[idx];
+                    <div class="card mb-2">
+                        <div class="card-header py-1 px-2 fw-semibold">Contributor @(idx + 1)</div>
+                        <div class="card-body py-2 px-2">
+                            <div class="mb-1">
+                                <label class="form-label form-label-sm mb-0">Proportion: @c.Proportion.ToString("F2")</label>
+                                <input type="range" class="form-range form-range-sm" min="0" max="1" step="0.01"
+                                       @bind="c.Proportion" @bind:event="oninput" />
+                            </div>
+                            <div class="mb-1">
+                                <label class="form-label form-label-sm mb-0">Degradation: @c.Degradation.ToString("F4")</label>
+                                <input type="range" class="form-range form-range-sm" min="-0.03" max="0" step="0.0001"
+                                       @bind="c.Degradation" @bind:event="oninput" />
+                            </div>
+                            <div class="mb-1">
+                                <label class="form-label form-label-sm mb-0">Database</label>
+                                <select class="form-select form-select-sm" @bind="c.Database"
+                                        disabled="@(c.Relationship != "Unrelated")">
+                                    @foreach (var db in CompatibleDatabases)
+                                    {
+                                        <option value="@db">@db</option>
+                                    }
+                                </select>
+                            </div>
+                            @if (idx > 0)
+                            {
+                                <div class="mb-1">
+                                    <label class="form-label form-label-sm mb-0">Relationship</label>
+                                    <select class="form-select form-select-sm" @bind="c.Relationship">
+                                        @foreach (var r in RelationshipOptions)
+                                        {
+                                            <option value="@r">@r</option>
+                                        }
+                                    </select>
+                                </div>
+                            }
+                            <div class="mb-0">
+                                <label class="form-label form-label-sm mb-0">Sex</label>
+                                <div>
+                                    <label class="me-2"><input type="radio" name="sex_@idx" checked="@(c.Sex == SexType.Random)" @onchange="() => SetSex(idx, SexType.Random)" /> Rnd</label>
+                                    <label class="me-2"><input type="radio" name="sex_@idx" checked="@(c.Sex == SexType.Male)" @onchange="() => SetSex(idx, SexType.Male)" /> M</label>
+                                    <label><input type="radio" name="sex_@idx" checked="@(c.Sex == SexType.Female)" @onchange="() => SetSex(idx, SexType.Female)" /> F</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="mt-3 d-grid gap-2">
+                <button class="btn btn-primary" @onclick="Generate" disabled="@isLoading">
+                    @(isLoading ? "Running…" : "Run Simulation")
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="Resample" disabled="@(isLoading || lastProfiles.Count == 0)">
+                    Resample (keep genotypes)
+                </button>
+            </div>
+
+            @if (errorMessage != null)
+            {
+                <div class="alert alert-danger mt-2 py-2 small">@errorMessage</div>
+            }
+            @if (statusMessage != null)
+            {
+                <div class="text-muted small mt-2">@statusMessage</div>
+            }
+        </div>
+
+        <div class="col-lg-8 col-xl-9">
+            @if (finalPeaks == null && !isLoading)
+            {
+                <p class="text-muted">Set contributors and click <strong>Run Simulation</strong>.</p>
+            }
+            @if (finalPeaks != null)
+            {
+                var channels = selectedKit == "IDPLUS" ? KitConfig.IdplusChannels : KitConfig.GlobalfilerChannels;
+                @foreach (var kvp in channels)
+                {
+                    <div class="mb-2" @key="kvp.Key">
+                        <div class="small text-muted">@kvp.Key</div>
+                        <EpgChart FinalPeaks="finalPeaks"
+                                  Loci="kvp.Value.Loci"
+                                  Color="kvp.Value.Color"
+                                  Threshold="kvp.Value.Threshold"
+                                  SamplePoints="800" />
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private sealed class ContributorEdit
+    {
+        public double Proportion { get; set; } = 1.0;
+        public double Degradation { get; set; } = -0.0015;
+        public string Database { get; set; } = "IDP Russian";
+        public string Relationship { get; set; } = "Unrelated";
+        public SexType Sex { get; set; } = SexType.Random;
+
+        public ContributorParams ToParams() =>
+            new(Proportion, Degradation, Database, Relationship, Locked: false, Sex);
+    }
+
+    private static readonly string[] RelationshipOptions =
+    {
+        "Unrelated", "Partner", "Mother", "Father",
+        "MaternalGrandmother", "MaternalGrandfather",
+        "PaternalGrandmother", "PaternalGrandfather",
+        "Sibling", "Child",
+        "MaternalAuntUncle", "PaternalAuntUncle",
+        "MaternalCousin", "PaternalCousin"
+    };
+
+    private string selectedKit = "IDPLUS";
+    private double template = 2000;
+    private int contributorCount = 1;
+    private readonly List<ContributorEdit> contributors = new();
+    private bool isLoading;
+    private string? errorMessage;
+    private string? statusMessage;
+    private List<Peak>? finalPeaks;
+    private List<Profile> lastProfiles = new();
+    private Pedigree? lastPedigree;
+
+    private readonly Dictionary<string, string> csvCache = new(StringComparer.OrdinalIgnoreCase);
+    private string? cachedRevCsv;
+    private string? cachedFwdCsv;
+    private StutterCalculator? reverseRules;
+    private StutterCalculator? forwardRules;
+
+    private IEnumerable<string> CompatibleDatabases =>
+        selectedKit == "GLOBALFILER"
+            ? KitConfig.DatabaseOptions.Keys.Where(k => k.StartsWith("GF ", StringComparison.Ordinal))
+            : KitConfig.DatabaseOptions.Keys.Where(k => k.StartsWith("IDP ", StringComparison.Ordinal));
+
+    protected override void OnInitialized()
+    {
+        LocusDefinitions.SetKit(selectedKit);
+        contributors.Add(NewContributor());
+    }
+
+    private void SetSex(int idx, SexType sex)
+    {
+        if (idx >= 0 && idx < contributors.Count)
+            contributors[idx].Sex = sex;
+    }
+
+    private ContributorEdit NewContributor()
+    {
+        var db = CompatibleDatabases.FirstOrDefault() ?? "IDP Russian";
+        return new ContributorEdit
+        {
+            Proportion = contributors.Count == 0 ? 1.0 : 0.5,
+            Degradation = -0.0015,
+            Database = db,
+            Relationship = "Unrelated",
+            Sex = SexType.Random
+        };
+    }
+
+    private void OnKitChanged(ChangeEventArgs e)
+    {
+        selectedKit = e.Value?.ToString() ?? "IDPLUS";
+        LocusDefinitions.SetKit(selectedKit);
+        var dbs = CompatibleDatabases.ToList();
+        foreach (var c in contributors)
+        {
+            if (!dbs.Contains(c.Database))
+                c.Database = dbs.FirstOrDefault() ?? c.Database;
+        }
+        finalPeaks = null;
+        lastProfiles.Clear();
+        lastPedigree = null;
+        statusMessage = null;
+    }
+
+    private void OnContributorCountChanged(ChangeEventArgs e)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out int n) || n < 1) n = 1;
+        n = Math.Clamp(n, 1, 10);
+        contributorCount = n;
+
+        while (contributors.Count < n)
+            contributors.Add(NewContributor());
+        while (contributors.Count > n)
+            contributors.RemoveAt(contributors.Count - 1);
+
+        if (contributors.Count > 0)
+            contributors[0].Relationship = "Unrelated";
+    }
+
+    private async Task<string> GetCsvAsync(string relativeUrl)
+    {
+        if (csvCache.TryGetValue(relativeUrl, out var cached))
+            return cached;
+        var text = await Http.GetStringAsync(relativeUrl);
+        csvCache[relativeUrl] = text;
+        return text;
+    }
+
+    private async Task EnsureStutterAsync()
+    {
+        if (reverseRules != null && forwardRules != null) return;
+        cachedRevCsv ??= await GetCsvAsync("data/stutter/reverse_stutter.csv");
+        cachedFwdCsv ??= await GetCsvAsync("data/stutter/forward_stutter.csv");
+        reverseRules = StutterCalculator.LoadFromContent(cachedRevCsv);
+        forwardRules = StutterCalculator.LoadFromContent(cachedFwdCsv);
+    }
+
+    private async Task<Dictionary<string, Dictionary<string, Dictionary<string, double>>>> LoadFreqMapAsync(
+        List<string> loci, IEnumerable<string> databases)
+    {
+        var map = new Dictionary<string, Dictionary<string, Dictionary<string, double>>>();
+        foreach (var db in databases.Distinct())
+        {
+            if (!KitConfig.DatabaseOptions.TryGetValue(db, out var fileName))
+                throw new InvalidOperationException($"Unknown database '{db}'.");
+            var csv = await GetCsvAsync($"data/frequencies/{Uri.EscapeDataString(fileName)}");
+            map[db] = FrequencyLoader.LoadAlleleFrequenciesFromContent(csv, loci);
+        }
+        return map;
+    }
+
+    private async Task Generate() => await RunAsync(resample: false);
+    private async Task Resample() => await RunAsync(resample: true);
+
+    private async Task RunAsync(bool resample)
+    {
+        isLoading = true;
+        errorMessage = null;
+        statusMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            LocusDefinitions.SetKit(selectedKit);
+            var loci = KitConfig.Kits[selectedKit];
+            var paramList = contributors.Select(c => c.ToParams()).ToList();
+
+            await EnsureStutterAsync();
+            var freqMap = await LoadFreqMapAsync(loci, paramList.Select(p => p.Database));
+            await Task.Yield();
+
+            var simParams = new SimulationParams
+            {
+                Kit = selectedKit,
+                Template = template,
+                LociToUse = loci,
+                ContributorParams = paramList,
+                LastProfilesBackup = resample ? new List<Profile>(lastProfiles) : new List<Profile>(),
+                CachedPedigree = resample ? lastPedigree : null
+            };
+
+            if (resample && lastProfiles.Count == paramList.Count)
+            {
+                simParams.ContributorParams = paramList
+                    .Select(p => p with { Locked = true })
+                    .ToList();
+            }
+
+            var result = SimulationService.GenerateProfiles(
+                simParams,
+                db => freqMap[db],
+                reverseRules!,
+                forwardRules!);
+
+            finalPeaks = result.FinalPeaks;
+            lastProfiles = result.Profiles;
+            lastPedigree = result.CachedPedigree;
+            statusMessage = $"{result.FinalPeaks.Count} peaks · {paramList.Count} contributor(s) · {selectedKit}";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            finalPeaks = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

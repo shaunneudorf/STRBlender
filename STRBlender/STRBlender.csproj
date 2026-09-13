@@ -1,0 +1,77 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="data\frequencies\IDP Russian.csv" />
+    <None Remove="data\frequencies\NIST1036_AfAm.csv" />
+    <None Remove="data\frequencies\NIST1036_Asian.csv" />
+    <None Remove="data\frequencies\NIST1036_Hisp.csv" />
+    <None Remove="data\frequencies\RCMP Combined Caucasian.csv" />
+    <None Remove="data\frequencies\RCMP Cree %28Saskatchewan%29.csv" />
+    <None Remove="data\frequencies\RCMP Ojibwe %28Northern Ontario%29.csv" />
+    <None Remove="data\frequencies\RCMP Salishan %28B.C.%29.csv" />
+    <None Remove="data\frequencies\South Asian.csv" />
+    <None Remove="data\stutter\forward_stutter.csv" />
+    <None Remove="data\stutter\GlobalFiler_SizeRegression.csv" />
+    <None Remove="data\stutter\GlobalFiler_Stutter_Exceptions_3500.csv" />
+    <None Remove="data\stutter\reverse_stutter.csv" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="data\frequencies\IDP Russian.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\frequencies\NIST1036_AfAm.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\frequencies\NIST1036_Asian.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\frequencies\NIST1036_Hisp.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\frequencies\RCMP Combined Caucasian.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\frequencies\RCMP Cree (Saskatchewan).csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\frequencies\RCMP Ojibwe (Northern Ontario).csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\frequencies\RCMP Salishan (B.C.).csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\frequencies\South Asian.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\stutter\forward_stutter.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\stutter\GlobalFiler_SizeRegression.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\stutter\GlobalFiler_Stutter_Exceptions_3500.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\stutter\reverse_stutter.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\STRBlender.Core\STRBlender.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Presentation\Views\Dialogs\" />
+  </ItemGroup>
+
+</Project>

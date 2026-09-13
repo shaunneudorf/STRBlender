@@ -1,0 +1,9 @@
+﻿<Window x:Class="STRBlender.Presentation.Views.ContributorProfilesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Ground Truth Profiles" Height="500" Width="500"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
+    <Grid Margin="12">
+        <TabControl x:Name="tabControl_Contributors"/>
+    </Grid>
+</Window>

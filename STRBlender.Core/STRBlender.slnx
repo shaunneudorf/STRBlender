@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="../PeakModelTest/PeakModelTest.csproj" Id="f00a927a-8a92-412c-a2e1-0a9011738059" />
+  <Project Path="../STRBlender/STRBlender.csproj" />
+  <Project Path="../STRBlender.Web/STRBlender.Web.csproj" />
+  <Project Path="STRBlender.Core.csproj" />
+</Solution>

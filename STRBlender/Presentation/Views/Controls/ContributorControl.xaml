@@ -1,0 +1,105 @@
+﻿<UserControl x:Class="STRBlender.Presentation.Views.Controls.ContributorControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:STRBlender.Presentation.Views.Controls"
+             Margin="0 0 0 6">
+
+    <UserControl.Resources>
+        <local:EnumEqualsConverter x:Key="EnumEqualsConverter" />
+        <local:RelationshipIsUnrelatedConverter x:Key="RelationshipIsUnrelatedConverter" />
+    </UserControl.Resources>
+
+
+
+    <GroupBox Header="{Binding HeaderText, RelativeSource={RelativeSource AncestorType=UserControl}}">
+        <Grid Margin="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="90"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Proportion -->
+            <Label Grid.Row="0" Grid.Column="0" Content="Proportion:"/>
+            <StackPanel Grid.Row="0" Grid.Column="1">
+                <Slider Minimum="0" Maximum="1"
+                        TickFrequency="0.01"
+                        SmallChange="0.01"
+                        LargeChange="0.05"
+                        Value="{Binding Proportion, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"/>
+                <TextBlock Text="{Binding Proportion, RelativeSource={RelativeSource AncestorType=UserControl}, StringFormat=F2}"/>
+            </StackPanel>
+
+            <!-- Degradation -->
+            <Label Grid.Row="1" Grid.Column="0" Content="Degradation:"/>
+            <StackPanel Grid.Row="1" Grid.Column="1">
+                <Slider Minimum="-0.03" Maximum="0"
+                        TickFrequency="0.001"
+                        SmallChange="0.0001"
+                        LargeChange="0.0005"
+                        Value="{Binding Degradation, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"/>
+                <TextBlock Text="{Binding Degradation, RelativeSource={RelativeSource AncestorType=UserControl}, StringFormat=F4}"/>
+            </StackPanel>
+
+            <!-- Database -->
+            <Label Grid.Row="2" Grid.Column="0" Content="Database:"/>
+            <ComboBox Grid.Row="2" Grid.Column="1"
+                      ItemsSource="{Binding DatabaseOptions, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      SelectedItem="{Binding Database, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+                      IsEnabled="{Binding Relationship, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource RelationshipIsUnrelatedConverter}}"/>
+
+            <!-- Relationship -->
+            <Label Grid.Row="3" Grid.Column="0" Content="Relationship:"/>
+            <ComboBox Grid.Row="3" Grid.Column="1"
+                      ItemsSource="{Binding RelationshipOptions, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      SelectedItem="{Binding Relationship, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+                      IsEnabled="{Binding IsRelationshipEnabled, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+
+            <!-- Lock -->
+            <CheckBox Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                      Content="Lock profile"
+                      IsChecked="{Binding Locked, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+                      IsEnabled="{Binding Relationship, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource RelationshipIsUnrelatedConverter}}"/>
+
+            <!-- Sex -->
+            <Label Grid.Row="5" Grid.Column="0" Content="Sex:"/>
+
+            <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal">
+
+                <RadioButton x:Name="rb_Random"
+             Content="Random"
+             Margin="0 0 6 0"
+             IsChecked="{Binding Sex,
+                         RelativeSource={RelativeSource AncestorType=UserControl},
+                         Converter={StaticResource EnumEqualsConverter},
+                         ConverterParameter=Random}" />
+
+                <RadioButton x:Name="rb_Male"
+             Content="M"
+             Margin="0 0 6 0"
+             IsChecked="{Binding Sex,
+                         RelativeSource={RelativeSource AncestorType=UserControl},
+                         Converter={StaticResource EnumEqualsConverter},
+                         ConverterParameter=Male}" />
+
+                <RadioButton x:Name="rb_Female"
+             Content="F"
+             IsChecked="{Binding Sex,
+                         RelativeSource={RelativeSource AncestorType=UserControl},
+                         Converter={StaticResource EnumEqualsConverter},
+                         ConverterParameter=Female}" />
+
+            </StackPanel>
+
+
+        </Grid>
+    </GroupBox>
+</UserControl>

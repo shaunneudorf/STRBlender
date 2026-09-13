@@ -1,0 +1,381 @@
+@page "/noc"
+@using STRBlender.Core.Application
+@using STRBlender.Core.Domain.Common
+@using STRBlender.Core.Domain.Models
+@using STRBlender.Core.Domain.Services
+@using STRBlender.Core.Infrastructure.Data
+@inject HttpClient Http
+
+<PageTitle>STRBlender — NOC Game</PageTitle>
+
+<div class="container-fluid py-2">
+    <div class="row">
+        <div class="col-lg-4 col-xl-3 mb-3 compact-sidebar">
+            <h4 class="mb-3">NOC Game</h4>
+            <p class="small text-muted">A random mixture is generated within your ranges. Guess the number of contributors.</p>
+
+            <div class="mb-2">
+                <label class="form-label fw-semibold">Kit</label>
+                <select class="form-select form-select-sm" value="@selectedKit" @onchange="OnKitChanged">
+                    @foreach (var kit in KitConfig.Kits.Keys)
+                    {
+                        <option value="@kit">@kit</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label fw-semibold">Database</label>
+                <select class="form-select form-select-sm" @bind="selectedDatabase">
+                    @foreach (var db in CompatibleDatabases)
+                    {
+                        <option value="@db">@db</option>
+                    }
+                </select>
+            </div>
+
+            <hr />
+
+            <label class="form-label fw-semibold">Contributors (NOC range)</label>
+            <div class="row g-2 mb-2">
+                <div class="col">
+                    <label class="small">Min</label>
+                    <select class="form-select form-select-sm" @bind="minContributors">
+                        @foreach (var n in NocChoices) { <option value="@n">@n</option> }
+                    </select>
+                </div>
+                <div class="col">
+                    <label class="small">Max</label>
+                    <select class="form-select form-select-sm" @bind="maxContributors">
+                        @foreach (var n in NocChoices) { <option value="@n">@n</option> }
+                    </select>
+                </div>
+            </div>
+
+            <label class="form-label fw-semibold">Degradation</label>
+            <div class="row g-2 mb-2">
+                <div class="col">
+                    <label class="small">Min</label>
+                    <input class="form-control form-control-sm" type="number" step="0.0001" @bind="minDegradation" />
+                </div>
+                <div class="col">
+                    <label class="small">Max</label>
+                    <input class="form-control form-control-sm" type="number" step="0.0001" @bind="maxDegradation" />
+                </div>
+            </div>
+
+            <label class="form-label fw-semibold">Proportion range</label>
+            <div class="row g-2 mb-2">
+                <div class="col">
+                    <label class="small">Min</label>
+                    <input class="form-control form-control-sm" type="number" step="0.01" @bind="minProportion" />
+                </div>
+                <div class="col">
+                    <label class="small">Max</label>
+                    <input class="form-control form-control-sm" type="number" step="0.01" @bind="maxProportion" />
+                </div>
+            </div>
+
+            <label class="form-label fw-semibold">Template (RFU)</label>
+            <div class="row g-2 mb-3">
+                <div class="col">
+                    <label class="small">Min</label>
+                    <input class="form-control form-control-sm" type="number" @bind="minTemplate" />
+                </div>
+                <div class="col">
+                    <label class="small">Max</label>
+                    <input class="form-control form-control-sm" type="number" @bind="maxTemplate" />
+                </div>
+            </div>
+
+            <div class="d-grid gap-2 mb-3">
+                <button class="btn btn-primary" @onclick="GenerateMixture" disabled="@isLoading">
+                    @(isLoading ? "Generating…" : "Generate mixture")
+                </button>
+            </div>
+
+            @if (mixtureReady)
+            {
+                <div class="card mb-3">
+                    <div class="card-header py-1">Your guess — NOC</div>
+                    <div class="card-body py-2">
+                        <div class="btn-group mb-2" role="group">
+                            @foreach (var n in NocChoices)
+                            {
+                                <button type="button"
+                                        class="btn btn-sm @(guess == n ? "btn-primary" : "btn-outline-primary")"
+                                        @onclick="() => guess = n"
+                                        disabled="@resultVisible">@n</button>
+                            }
+                        </div>
+                        <div class="d-grid">
+                            <button class="btn btn-success btn-sm" @onclick="SubmitGuess"
+                                    disabled="@(resultVisible || guess < 1)">Submit guess</button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (resultVisible)
+            {
+                <div class="alert @(correct ? "alert-success" : "alert-danger") py-2">
+                    <strong>@resultVerdict</strong>
+                    <div class="small">@resultDetail</div>
+                </div>
+
+                <div class="card mb-2">
+                    <div class="card-header py-1">Contributor overlays</div>
+                    <div class="card-body py-2 small">
+                        @for (int i = 0; i < actualContributors.Count; i++)
+                        {
+                            var idx = i;
+                            var c = actualContributors[idx];
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox"
+                                       id="ov_@idx"
+                                       checked="@overlayOn[idx]"
+                                       @onchange="e => ToggleOverlay(idx, e)" />
+                                <label class="form-check-label" for="ov_@idx">
+                                    C@(idx + 1) · Prop=@c.Proportion.ToString("F2") · Deg=@c.Degradation.ToString("F4")
+                                </label>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="small text-muted">
+                Score: <strong>@scoreCorrect</strong> correct / <strong>@scoreWrong</strong> wrong · Streak: <strong>@streak</strong>
+            </div>
+
+            @if (errorMessage != null)
+            {
+                <div class="alert alert-danger mt-2 py-2 small">@errorMessage</div>
+            }
+        </div>
+
+        <div class="col-lg-8 col-xl-9">
+            @if (finalPeaks == null && !isLoading)
+            {
+                <p class="text-muted">Set ranges and click <strong>Generate mixture</strong>.</p>
+            }
+            @if (finalPeaks != null)
+            {
+                var channels = selectedKit == "IDPLUS" ? KitConfig.IdplusChannels : KitConfig.GlobalfilerChannels;
+                @foreach (var kvp in channels)
+                {
+                    <div class="mb-2" @key="kvp.Key">
+                        <div class="small text-muted">@kvp.Key</div>
+                        <EpgChart FinalPeaks="finalPeaks"
+                                  Loci="kvp.Value.Loci"
+                                  Color="kvp.Value.Color"
+                                  Threshold="kvp.Value.Threshold"
+                                  SamplePoints="700" />
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private static readonly int[] NocChoices = { 1, 2, 3, 4, 5 };
+    private readonly Random rng = new();
+
+    private string selectedKit = "IDPLUS";
+    private string selectedDatabase = "IDP Russian";
+    private int minContributors = 1;
+    private int maxContributors = 3;
+    private double minDegradation = -0.003;
+    private double maxDegradation = 0.0;
+    private double minProportion = 0.1;
+    private double maxProportion = 1.0;
+    private double minTemplate = 500;
+    private double maxTemplate = 1000;
+
+    private bool isLoading;
+    private bool mixtureReady;
+    private bool resultVisible;
+    private bool correct;
+    private int guess;
+    private int actualNoc;
+    private int scoreCorrect;
+    private int scoreWrong;
+    private int streak;
+    private string resultVerdict = "";
+    private string resultDetail = "";
+    private string? errorMessage;
+
+    private List<Peak>? finalPeaks;
+    private List<ContributorParams> actualContributors = new();
+    private bool[] overlayOn = Array.Empty<bool>();
+
+    private readonly Dictionary<string, string> csvCache = new(StringComparer.OrdinalIgnoreCase);
+    private StutterCalculator? reverseRules;
+    private StutterCalculator? forwardRules;
+
+    private IEnumerable<string> CompatibleDatabases =>
+        selectedKit == "GLOBALFILER"
+            ? KitConfig.DatabaseOptions.Keys.Where(k => k.StartsWith("GF ", StringComparison.Ordinal))
+            : KitConfig.DatabaseOptions.Keys.Where(k => k.StartsWith("IDP ", StringComparison.Ordinal));
+
+    protected override void OnInitialized()
+    {
+        LocusDefinitions.SetKit(selectedKit);
+        selectedDatabase = CompatibleDatabases.FirstOrDefault() ?? selectedDatabase;
+    }
+
+    private void OnKitChanged(ChangeEventArgs e)
+    {
+        selectedKit = e.Value?.ToString() ?? "IDPLUS";
+        LocusDefinitions.SetKit(selectedKit);
+        var dbs = CompatibleDatabases.ToList();
+        if (!dbs.Contains(selectedDatabase))
+            selectedDatabase = dbs.FirstOrDefault() ?? selectedDatabase;
+        finalPeaks = null;
+        mixtureReady = false;
+        resultVisible = false;
+    }
+
+    private async Task<string> GetCsvAsync(string url)
+    {
+        if (csvCache.TryGetValue(url, out var c)) return c;
+        var t = await Http.GetStringAsync(url);
+        csvCache[url] = t;
+        return t;
+    }
+
+    private async Task EnsureDataAsync(List<string> loci, string database)
+    {
+        if (reverseRules == null || forwardRules == null)
+        {
+            var rev = await GetCsvAsync("data/stutter/reverse_stutter.csv");
+            var fwd = await GetCsvAsync("data/stutter/forward_stutter.csv");
+            reverseRules = StutterCalculator.LoadFromContent(rev);
+            forwardRules = StutterCalculator.LoadFromContent(fwd);
+        }
+        // warm frequency for selected DB
+        if (!KitConfig.DatabaseOptions.TryGetValue(database, out var file))
+            throw new InvalidOperationException($"Unknown database '{database}'.");
+        await GetCsvAsync($"data/frequencies/{Uri.EscapeDataString(file)}");
+    }
+
+    private List<double> RandomProportions(int count)
+    {
+        if (count == 1) return new List<double> { 1.0 };
+        double min = Math.Clamp(minProportion, 0.01, 1.0);
+        double max = Math.Clamp(maxProportion, min, 1.0);
+        var props = new List<double>();
+        double remaining = 1.0;
+        for (int i = 0; i < count - 1; i++)
+        {
+            double safeMax = Math.Min(max, remaining - min * (count - i - 1));
+            safeMax = Math.Max(min, safeMax);
+            double value = min + rng.NextDouble() * (safeMax - min);
+            props.Add(value);
+            remaining -= value;
+        }
+        props.Add(Math.Clamp(remaining, min, max));
+        return props.OrderBy(_ => rng.Next()).ToList();
+    }
+
+    private List<ContributorParams> RandomContributors(int noc)
+    {
+        var props = RandomProportions(noc);
+        var list = new List<ContributorParams>();
+        for (int i = 0; i < noc; i++)
+        {
+            double deg = minDegradation + rng.NextDouble() * (maxDegradation - minDegradation);
+            list.Add(new ContributorParams(props[i], deg, selectedDatabase, "Unrelated", false, SexType.Random));
+        }
+        return list;
+    }
+
+    private async Task GenerateMixture()
+    {
+        if (minContributors > maxContributors)
+        {
+            errorMessage = "Min contributors cannot exceed max.";
+            return;
+        }
+        isLoading = true;
+        errorMessage = null;
+        mixtureReady = false;
+        resultVisible = false;
+        guess = 0;
+        StateHasChanged();
+
+        try
+        {
+            LocusDefinitions.SetKit(selectedKit);
+            var loci = KitConfig.Kits[selectedKit];
+            await EnsureDataAsync(loci, selectedDatabase);
+
+            actualNoc = rng.Next(minContributors, maxContributors + 1);
+            actualContributors = RandomContributors(actualNoc);
+            overlayOn = new bool[actualNoc];
+            double template = minTemplate + rng.NextDouble() * (maxTemplate - minTemplate);
+
+            string file = KitConfig.DatabaseOptions[selectedDatabase];
+            string freqCsv = await GetCsvAsync($"data/frequencies/{Uri.EscapeDataString(file)}");
+            var freqs = FrequencyLoader.LoadAlleleFrequenciesFromContent(freqCsv, loci);
+
+            await Task.Yield();
+
+            var simParams = new SimulationParams
+            {
+                Kit = selectedKit,
+                Template = template,
+                LociToUse = loci,
+                ContributorParams = actualContributors,
+                LastProfilesBackup = new List<Profile>()
+            };
+
+            var result = SimulationService.GenerateProfiles(
+                simParams,
+                _ => freqs,
+                reverseRules!,
+                forwardRules!);
+
+            finalPeaks = result.FinalPeaks;
+            mixtureReady = true;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SubmitGuess()
+    {
+        if (guess < 1) return;
+        correct = guess == actualNoc;
+        if (correct)
+        {
+            scoreCorrect++;
+            streak++;
+            resultVerdict = "Correct!";
+        }
+        else
+        {
+            scoreWrong++;
+            streak = 0;
+            resultVerdict = "Incorrect";
+        }
+        resultDetail = $"Actual NOC: {actualNoc}";
+        resultVisible = true;
+        mixtureReady = true;
+    }
+
+    private void ToggleOverlay(int idx, ChangeEventArgs e)
+    {
+        if (idx < 0 || idx >= overlayOn.Length) return;
+        overlayOn[idx] = e.Value is bool b && b || string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+        // Phase 1 web: overlays listed after reveal; full per-contributor curve overlay can be Phase 1.1
+        // For now the checkbox is informational + score reveal already shows props.
+    }
+}
