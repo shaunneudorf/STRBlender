@@ -99,22 +99,35 @@ namespace STRBlender.Core.Domain.Services
                 .Where(p => p.Mw.HasValue && loci.Contains(p.Locus))
                 .ToList();
 
-            double[] xData = Enumerable.Range(0, n)
+            double[] baseXData = Enumerable.Range(0, n)
                 .Select(i => XMin + i * ((XMax - XMin) / (n - 1)))
                 .ToArray();
 
-            double[] yData = new double[n];
+            double[] baseNoise = GenerateNoise(color, n);
+
+            // Ensure every true peak's exact position is sampled directly — a
+            // coarse grid can otherwise miss a narrow peak's true apex entirely
+            // if no grid point happens to land near its center, making the
+            // drawn curve fall short of its own label/stem height.
+            var mergedXSet = new SortedSet<double>(baseXData);
+            foreach (var peak in visible)
+            {
+                if (peak.Mw.HasValue) mergedXSet.Add(peak.Mw.Value);
+            }
+            double[] xData = mergedXSet.ToArray();
+
+            double[] yData = new double[xData.Length];
             foreach (var peak in visible)
             {
                 double mw = peak.Mw!.Value;
-                for (int i = 0; i < n; i++)
+                for (int i = 0; i < xData.Length; i++)
                 {
                     double dx = xData[i] - mw;
                     yData[i] += peak.Height * Math.Exp(-(dx * dx) / (2 * Sigma * Sigma));
                 }
             }
 
-            double[] noise = GenerateNoise(color, n);
+            double[] noise = InterpolateNoise(baseXData, baseNoise, xData);
             double[] yDisplay = xData.Select((_, i) => Math.Max(yData[i], noise[i])).ToArray();
 
             double yMax = yDisplay.Max();
@@ -141,13 +154,13 @@ namespace STRBlender.Core.Domain.Services
 
             // === FILLED CURVE + LINE ===
             model.FillPolygonPoints.Add(new ChartPoint(ToScreenX(xData[0]), zeroY));
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i < xData.Length; i++)
             {
                 var pt = new ChartPoint(ToScreenX(xData[i]), ToScreenY(yDisplay[i]));
                 model.FillPolygonPoints.Add(pt);
                 model.CurveLinePoints.Add(pt);
             }
-            model.FillPolygonPoints.Add(new ChartPoint(ToScreenX(xData[n - 1]), zeroY));
+            model.FillPolygonPoints.Add(new ChartPoint(ToScreenX(xData[xData.Length - 1]), zeroY));
 
             // === AXES ===
             model.YAxisLine = new ChartLineSegment(marginLeft, marginTop, marginLeft, marginTop + plotH);
@@ -267,15 +280,22 @@ namespace STRBlender.Core.Domain.Services
             double ToScreenY(double rfu) => marginTop + plotH - (rfu / yAxisMax * plotH);
             double zeroY = ToScreenY(0);
 
-            double[] xData = Enumerable.Range(0, nPoints)
+            double[] baseXData = Enumerable.Range(0, nPoints)
                 .Select(i => XMin + i * ((XMax - XMin) / (nPoints - 1)))
                 .ToArray();
 
-            double[] yData = new double[nPoints];
+            var mergedXSet = new SortedSet<double>(baseXData);
+            foreach (var peak in visible)
+            {
+                if (peak.Mw.HasValue) mergedXSet.Add(peak.Mw.Value);
+            }
+            double[] xData = mergedXSet.ToArray();
+
+            double[] yData = new double[xData.Length];
             foreach (var peak in visible)
             {
                 double mw = peak.Mw!.Value;
-                for (int i = 0; i < nPoints; i++)
+                for (int i = 0; i < xData.Length; i++)
                 {
                     double dx = xData[i] - mw;
                     yData[i] += peak.Height * Math.Exp(-(dx * dx) / (2 * Sigma * Sigma));
@@ -283,15 +303,43 @@ namespace STRBlender.Core.Domain.Services
             }
 
             model.FillPolygonPoints.Add(new ChartPoint(ToScreenX(xData[0]), zeroY));
-            for (int i = 0; i < nPoints; i++)
+            for (int i = 0; i < xData.Length; i++)
             {
                 var pt = new ChartPoint(ToScreenX(xData[i]), ToScreenY(yData[i]));
                 model.FillPolygonPoints.Add(pt);
                 model.LinePoints.Add(pt);
             }
-            model.FillPolygonPoints.Add(new ChartPoint(ToScreenX(xData[nPoints - 1]), zeroY));
+            model.FillPolygonPoints.Add(new ChartPoint(ToScreenX(xData[xData.Length - 1]), zeroY));
 
             return model;
+        }
+
+        /// Interpolates the noise floor (generated on the original coarse grid)
+        /// at an arbitrary set of target x-positions, which may include exact
+        /// peak positions inserted between original grid points. The noise
+        /// floor is a slowly-varying baseline, so linear interpolation between
+        /// its nearest two original samples is visually seamless — unlike peak
+        /// heights, it doesn't need exact per-position evaluation.
+        private static double[] InterpolateNoise(double[] baseX, double[] baseNoise, double[] targetX)
+        {
+            var result = new double[targetX.Length];
+            int baseIdx = 0;
+            for (int i = 0; i < targetX.Length; i++)
+            {
+                double x = targetX[i];
+                while (baseIdx < baseX.Length - 2 && baseX[baseIdx + 1] < x) baseIdx++;
+                int i0 = baseIdx;
+                int i1 = Math.Min(baseIdx + 1, baseX.Length - 1);
+                if (baseX[i1] == baseX[i0])
+                {
+                    result[i] = baseNoise[i0];
+                    continue;
+                }
+                double t = (x - baseX[i0]) / (baseX[i1] - baseX[i0]);
+                t = Math.Clamp(t, 0, 1);
+                result[i] = baseNoise[i0] + t * (baseNoise[i1] - baseNoise[i0]);
+            }
+            return result;
         }
 
         public static double[] GenerateNoise(RgbColor color, int nPoints)
