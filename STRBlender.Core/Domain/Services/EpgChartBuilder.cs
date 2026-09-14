@@ -133,7 +133,7 @@ namespace STRBlender.Core.Domain.Services
             double yMax = yDisplay.Max();
             double truePeakMax = visible.Any() ? visible.Max(p => p.Height) : 0;
             double yRange = Math.Max(Math.Max(yMax, truePeakMax), 150);
-            double yAxisMax = RoundUpNice(yRange * 1.02);
+            double yAxisMax = RoundUpNice(yRange * 1.20);
 
             double ToScreenX(double bp) => marginLeft + (bp - XMin) / (XMax - XMin) * plotW;
             double ToScreenY(double rfu) => marginTop + plotH - (rfu / yAxisMax * plotH);
