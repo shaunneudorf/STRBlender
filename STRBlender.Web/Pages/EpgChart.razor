@@ -17,6 +17,7 @@
     [Parameter] public double Width { get; set; } = 900;
     [Parameter] public double Height { get; set; } = 260;
     [Parameter] public int SamplePoints { get; set; } = 800;
+    [Parameter] public EventCallback<double> YAxisMaxChanged { get; set; }
 
     private string staticSvg = "";
     private string peakSvg = "";
@@ -54,6 +55,8 @@
         // chart frame no longer flashes on every Generate/Resample.
         staticSvg = BuildStaticGroup(model);
         peakSvg = BuildPeakGroup(model);
+
+        _ = YAxisMaxChanged.InvokeAsync(model.YAxisMax);
 
         lastPeaks = FinalPeaks;
         lastLoci = Loci;

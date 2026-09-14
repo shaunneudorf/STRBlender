@@ -346,5 +346,73 @@ namespace STRBlender.Core.Domain.Services
             }
             return allele; // non-numeric (AMEL X/Y, etc.)
         }
+
+        /// Proportionally attributes each real, final (post-noise, post-stacking)
+        /// peak height to whichever contributors are currently selected — used
+        /// for the NOC game's contributor overlay. For every (locus, allele)
+        /// position, the selected contributors' share of the total deterministic
+        /// true-allele BaseHeight at that position is used as the fraction of
+        /// the *actual* final height attributed to them. This isn't each
+        /// contributor's own independent genotype re-rendered — it's their
+        /// share of the one real, shared, already-noisy outcome, which is the
+        /// only way to show an overlay that's consistent with the mixture the
+        /// player is actually looking at.
+        public static List<Peak> ComputeOverlayAttribution(
+            List<List<Peak>> baseContributorPeaks,
+            List<int> selectedIndices,
+            List<Peak> finalPeaks)
+        {
+            var selectedBase = new Dictionary<(string Locus, string Allele), double>();
+            foreach (int idx in selectedIndices)
+            {
+                if (idx < 0 || idx >= baseContributorPeaks.Count) continue;
+                foreach (var p in baseContributorPeaks[idx])
+                {
+                    if (p.PeakType != "parent") continue;
+                    var key = (p.Locus, NormalizeAlleleKey(p.Allele));
+                    selectedBase[key] = selectedBase.GetValueOrDefault(key) + p.BaseHeight;
+                }
+            }
+
+            var totalBase = new Dictionary<(string Locus, string Allele), double>();
+            foreach (var contributorPeaks in baseContributorPeaks)
+            {
+                foreach (var p in contributorPeaks)
+                {
+                    if (p.PeakType != "parent") continue;
+                    var key = (p.Locus, NormalizeAlleleKey(p.Allele));
+                    totalBase[key] = totalBase.GetValueOrDefault(key) + p.BaseHeight;
+                }
+            }
+
+            var overlayPeaks = new List<Peak>();
+            foreach (var final in finalPeaks)
+            {
+                var key = (final.Locus, NormalizeAlleleKey(final.Allele));
+
+                if (!selectedBase.TryGetValue(key, out double selectedBaseAtPosition) ||
+                    selectedBaseAtPosition <= 0)
+                    continue;
+
+                if (!totalBase.TryGetValue(key, out double totalBaseAtPosition) ||
+                    totalBaseAtPosition <= 0)
+                    continue;
+
+                double fraction = selectedBaseAtPosition / totalBaseAtPosition;
+                double attributedHeight = final.Height * fraction;
+
+                overlayPeaks.Add(new Peak
+                {
+                    Locus = final.Locus,
+                    Allele = final.Allele,
+                    Mw = final.Mw,
+                    Height = attributedHeight,
+                    BaseHeight = selectedBaseAtPosition,
+                    PeakType = "parent"
+                });
+            }
+
+            return overlayPeaks;
+        }
     }
 }

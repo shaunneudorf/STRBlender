@@ -166,11 +166,23 @@
                 {
                     <div class="mb-2" @key="kvp.Key">
                         <div class="small text-muted">@kvp.Key</div>
-                        <EpgChart FinalPeaks="finalPeaks"
-                                  Loci="kvp.Value.Loci"
-                                  Color="kvp.Value.Color"
-                                  Threshold="kvp.Value.Threshold"
-                                  SamplePoints="700" />
+                        <div style="position:relative;">
+                            <div style="opacity:@(anyOverlayChecked ? 0.25 : 1.0);">
+                                <EpgChart FinalPeaks="finalPeaks"
+                                          Loci="kvp.Value.Loci"
+                                          Color="kvp.Value.Color"
+                                          Threshold="kvp.Value.Threshold"
+                                          SamplePoints="700"
+                                          YAxisMaxChanged="v => OnYAxisMaxComputed(kvp.Key, v)" />
+                            </div>
+                            @if (anyOverlayChecked)
+                            {
+                                <EpgOverlay OverlayPeaks="overlayPeaks"
+                                            Loci="kvp.Value.Loci"
+                                            Color="kvp.Value.Color"
+                                            YAxisMax="yAxisMaxByChannel.GetValueOrDefault(kvp.Key, 5000)" />
+                            }
+                        </div>
                     </div>
                 }
             }
@@ -207,8 +219,12 @@
     private string? errorMessage;
 
     private List<Peak>? finalPeaks;
+    private List<List<Peak>> contributorPeaks = new();
     private List<ContributorParams> actualContributors = new();
     private bool[] overlayOn = Array.Empty<bool>();
+    private List<Peak> overlayPeaks = new();
+    private bool anyOverlayChecked;
+    private readonly Dictionary<string, double> yAxisMaxByChannel = new();
 
     private readonly Dictionary<string, string> csvCache = new(StringComparer.OrdinalIgnoreCase);
     private StutterCalculator? reverseRules;
@@ -314,6 +330,8 @@
             actualNoc = rng.Next(minContributors, maxContributors + 1);
             actualContributors = RandomContributors(actualNoc);
             overlayOn = new bool[actualNoc];
+            overlayPeaks = new List<Peak>();
+            anyOverlayChecked = false;
             double template = minTemplate + rng.NextDouble() * (maxTemplate - minTemplate);
 
             string file = KitConfig.DatabaseOptions[selectedDatabase];
@@ -338,6 +356,7 @@
                 forwardRules!);
 
             finalPeaks = result.FinalPeaks;
+            contributorPeaks = result.PeakLists;
             mixtureReady = true;
         }
         catch (Exception ex)
@@ -375,7 +394,14 @@
     {
         if (idx < 0 || idx >= overlayOn.Length) return;
         overlayOn[idx] = e.Value is bool b && b || string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
-        // Phase 1 web: overlays listed after reveal; full per-contributor curve overlay can be Phase 1.1
-        // For now the checkbox is informational + score reveal already shows props.
+
+        var checkedIndices = Enumerable.Range(0, overlayOn.Length).Where(i => overlayOn[i]).ToList();
+        anyOverlayChecked = checkedIndices.Count > 0;
+
+        overlayPeaks = anyOverlayChecked && finalPeaks != null
+            ? PeakCalculator.ComputeOverlayAttribution(contributorPeaks, checkedIndices, finalPeaks)
+            : new List<Peak>();
     }
+
+    private void OnYAxisMaxComputed(string channelKey, double value) => yAxisMaxByChannel[channelKey] = value;
 }

@@ -1,0 +1,40 @@
+@using STRBlender.Core.Domain.Models
+@using STRBlender.Core.Domain.Services
+@using System.Text
+@using System.Globalization
+
+<div style="position:absolute; top:0; left:0; pointer-events:none;">
+    <svg width="@Width" height="@Height" viewBox="@($"0 0 {Width} {Height}")"
+         xmlns="http://www.w3.org/2000/svg">
+        @((MarkupString)svgMarkup)
+    </svg>
+</div>
+
+@code {
+    [Parameter] public List<Peak> OverlayPeaks { get; set; } = new();
+    [Parameter] public List<string> Loci { get; set; } = new();
+    [Parameter] public RgbColor Color { get; set; } = RgbColor.Blue;
+    [Parameter] public double YAxisMax { get; set; } = 5000;
+    [Parameter] public double Width { get; set; } = 900;
+    [Parameter] public double Height { get; set; } = 260;
+
+    private string svgMarkup = "";
+
+    protected override void OnParametersSet()
+    {
+        var model = EpgChartBuilder.BuildOverlay(OverlayPeaks, Loci, Width, Height, YAxisMax);
+
+        var sb = new StringBuilder();
+        // Matches the desktop app's DrawOverlay: fill alpha 190, line alpha 220.
+        sb.Append(Inv($"<polygon points=\"{PointsString(model.FillPolygonPoints)}\" fill=\"{Rgba(Color, 190)}\" stroke=\"none\" />"));
+        sb.Append(Inv($"<polyline points=\"{PointsString(model.LinePoints)}\" fill=\"none\" stroke=\"{Rgba(Color, 220)}\" stroke-width=\"1.2\" stroke-linejoin=\"round\" />"));
+        svgMarkup = sb.ToString();
+    }
+
+    private static string PointsString(List<ChartPoint> points) =>
+        string.Join(" ", points.Select(p => Inv($"{p.X:F1},{p.Y:F1}")));
+
+    private static string Rgba(RgbColor c, int alpha0to255) => Inv($"rgba({c.R},{c.G},{c.B},{alpha0to255 / 255.0:F3})");
+
+    private static string Inv(FormattableString s) => FormattableString.Invariant(s);
+}

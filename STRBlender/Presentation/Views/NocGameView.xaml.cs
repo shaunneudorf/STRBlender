@@ -200,71 +200,8 @@ namespace STRBlender.Presentation.Views
 
             if (!anyChecked) return;
 
-            // ---------------------------------------------------------------
-            // NEW: Proportional attribution of the FINAL observed peak height
-            // using each contributor's pre-stochastic BaseHeight as the weight.
-            // ---------------------------------------------------------------
-
-            var lociToUse = KitConfig.Kits[_viewModel.SelectedKit];
-
-            // 1. Collect BaseHeight for every (locus, allele) from the selected contributors
-            //    Key = (Locus, Allele)  →  total BaseHeight of the selected people
-            var selectedBase = new Dictionary<(string Locus, string Allele), double>();
-
-            foreach (int idx in checkedIndices)
-            {
-                if (idx < 0 || idx >= _viewModel.BaseContributorPeaks.Count) continue;
-
-                foreach (var p in _viewModel.BaseContributorPeaks[idx])
-                {
-                    // Only use true-allele (parent) peaks for attribution.
-                    // Illustrative stutter in BaseContributorPeaks is ignored.
-                    if (p.PeakType != "parent") continue;
-
-                    var key = (p.Locus, p.Allele);
-                    selectedBase[key] = selectedBase.GetValueOrDefault(key) + p.BaseHeight;
-                }
-            }
-
-            // 2. For every final peak, compute the share that belongs to the selected contributors
-            var overlayPeaks = new List<Peak>();
-
-            foreach (var final in _viewModel.FinalPeaks)
-            {
-                var key = (final.Locus, final.Allele);
-
-                if (!selectedBase.TryGetValue(key, out double selectedBaseAtPosition) ||
-                    selectedBaseAtPosition <= 0)
-                    continue;
-
-                // How much of the total expected height at this position came from the selected people?
-                // We need the grand-total BaseHeight (all contributors) so we can compute the fraction.
-                double totalBaseAtPosition = 0;
-                for (int i = 0; i < _viewModel.BaseContributorPeaks.Count; i++)
-                {
-                    foreach (var p in _viewModel.BaseContributorPeaks[i])
-                    {
-                        if (p.PeakType != "parent") continue;
-                        if (p.Locus == final.Locus && p.Allele == final.Allele)
-                            totalBaseAtPosition += p.BaseHeight;
-                    }
-                }
-
-                if (totalBaseAtPosition <= 0) continue;
-
-                double fraction = selectedBaseAtPosition / totalBaseAtPosition;
-                double attributedHeight = final.Height * fraction;
-
-                overlayPeaks.Add(new Peak
-                {
-                    Locus = final.Locus,
-                    Allele = final.Allele,
-                    Mw = final.Mw,
-                    Height = attributedHeight,
-                    BaseHeight = selectedBaseAtPosition,   // optional, for debugging
-                    PeakType = "parent"
-                });
-            }
+            var overlayPeaks = PeakCalculator.ComputeOverlayAttribution(
+                _viewModel.BaseContributorPeaks, checkedIndices, _viewModel.FinalPeaks);
 
             // 3. Draw the attributed peaks as the overlay
             foreach (var (channelName, channel) in channels)
