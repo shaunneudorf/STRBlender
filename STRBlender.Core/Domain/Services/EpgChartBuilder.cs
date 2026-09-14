@@ -118,7 +118,8 @@ namespace STRBlender.Core.Domain.Services
             double[] yDisplay = xData.Select((_, i) => Math.Max(yData[i], noise[i])).ToArray();
 
             double yMax = yDisplay.Max();
-            double yRange = Math.Max(yMax, 150);
+            double truePeakMax = visible.Any() ? visible.Max(p => p.Height) : 0;
+            double yRange = Math.Max(Math.Max(yMax, truePeakMax), 150);
             double yAxisMax = RoundUpNice(yRange * 1.02);
 
             double ToScreenX(double bp) => marginLeft + (bp - XMin) / (XMax - XMin) * plotW;
@@ -203,7 +204,8 @@ namespace STRBlender.Core.Domain.Services
             {
                 if (!peak.Mw.HasValue) continue;
                 int idx = Array.IndexOf(xData, xData.MinBy(xi => Math.Abs(xi - peak.Mw.Value)));
-                double effectiveHeight = yDisplay[idx];
+                double sampledHeight = yDisplay[idx];
+                double effectiveHeight = Math.Max(sampledHeight, peak.Height);
                 if (effectiveHeight < threshold) continue;
 
                 double xPos = peak.Mw.Value;
