@@ -245,9 +245,9 @@
     private StutterCalculator? forwardRules;
 
     private IEnumerable<string> CompatibleDatabases =>
-        selectedKit == "GLOBALFILER"
-            ? KitConfig.DatabaseOptions.Keys.Where(k => k.StartsWith("GF ", StringComparison.Ordinal))
-            : KitConfig.DatabaseOptions.Keys.Where(k => k.StartsWith("IDP ", StringComparison.Ordinal));
+    selectedKit == "GLOBALFILER"
+        ? KitConfig.DatabaseOptions.Keys.Where(k => k.StartsWith("GF ", StringComparison.Ordinal))
+        : KitConfig.DatabaseOptions.Keys;   // IDPLUS can use everything
 
     protected override void OnInitialized()
     {
