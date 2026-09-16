@@ -43,17 +43,17 @@
                     <div class="card mb-2">
                         <div class="card-header py-1 px-2 fw-semibold">Contributor @(idx + 1)</div>
                         <div class="card-body py-2 px-2">
-                            <div class="mb-1">
+                            <div class="mb-0">
                                 <label class="form-label form-label-sm mb-0">Proportion: @c.Proportion.ToString("F2")</label>
                                 <input type="range" class="form-range form-range-sm" min="0" max="1" step="0.01"
                                        @bind="c.Proportion" @bind:event="oninput" />
                             </div>
-                            <div class="mb-1">
+                            <div class="mb-0">
                                 <label class="form-label form-label-sm mb-0">Degradation: @c.Degradation.ToString("F4")</label>
                                 <input type="range" class="form-range form-range-sm" min="-0.03" max="0" step="0.0001"
                                        @bind="c.Degradation" @bind:event="oninput" />
                             </div>
-                            <div class="mb-1">
+                            <div class="mb-0">
                                 <label class="form-label form-label-sm mb-0">Database</label>
                                 <select class="form-select form-select-sm" @bind="c.Database"
                                         disabled="@(c.Relationship != "Unrelated")">
@@ -65,7 +65,7 @@
                             </div>
                             @if (idx > 0)
                             {
-                                <div class="mb-1">
+                                <div class="mb-0">
                                     <label class="form-label form-label-sm mb-0">Relationship</label>
                                     <select class="form-select form-select-sm" @bind="c.Relationship">
                                         @foreach (var r in RelationshipOptions)
@@ -77,7 +77,7 @@
                             }
                             <div class="mb-0">
                                 <label class="form-label form-label-sm mb-0">Sex</label>
-                                <div>
+                                <div class="small">
                                     <label class="me-2"><input type="radio" name="sex_@idx" checked="@(c.Sex == SexType.Random)" @onchange="() => SetSex(idx, SexType.Random)" /> Rnd</label>
                                     <label class="me-2"><input type="radio" name="sex_@idx" checked="@(c.Sex == SexType.Male)" @onchange="() => SetSex(idx, SexType.Male)" /> M</label>
                                     <label><input type="radio" name="sex_@idx" checked="@(c.Sex == SexType.Female)" @onchange="() => SetSex(idx, SexType.Female)" /> F</label>
@@ -207,7 +207,7 @@
     {
         public double Proportion { get; set; } = 1.0;
         public double Degradation { get; set; } = -0.0015;
-        public string Database { get; set; } = "IDP Russian";
+        public string Database { get; set; } = "FBI Caucasian";
         public string Relationship { get; set; } = "Unrelated";
         public SexType Sex { get; set; } = SexType.Random;
 
@@ -225,7 +225,7 @@
         "MaternalCousin", "PaternalCousin"
     };
 
-    private string selectedKit = "IDPLUS";
+    private string selectedKit = "GLOBALFILER";
     private double template = 2000;
     private int contributorCount = 1;
     private readonly List<ContributorEdit> contributors = new();
@@ -245,9 +245,7 @@
     private StutterCalculator? forwardRules;
 
     private IEnumerable<string> CompatibleDatabases =>
-    selectedKit == "GLOBALFILER"
-        ? KitConfig.DatabaseOptions.Keys.Where(k => k.StartsWith("GF ", StringComparison.Ordinal))
-        : KitConfig.DatabaseOptions.Keys;   // IDPLUS can use everything
+    KitConfig.DatabaseOptions.Keys;
 
     protected override void OnInitialized()
     {
@@ -263,7 +261,7 @@
 
     private ContributorEdit NewContributor()
     {
-        var db = CompatibleDatabases.FirstOrDefault() ?? "IDP Russian";
+        var db = CompatibleDatabases.FirstOrDefault() ?? "FBI Caucasian";
         return new ContributorEdit
         {
             Proportion = contributors.Count == 0 ? 1.0 : 0.5,
@@ -276,7 +274,7 @@
 
     private void OnKitChanged(ChangeEventArgs e)
     {
-        selectedKit = e.Value?.ToString() ?? "IDPLUS";
+        selectedKit = e.Value?.ToString() ?? "GLOBALFILER";
         LocusDefinitions.SetKit(selectedKit);
         var dbs = CompatibleDatabases.ToList();
         foreach (var c in contributors)

@@ -30,14 +30,25 @@ namespace STRBlender.Core.Domain.Common
         // Database options
         public static readonly Dictionary<string, string> DatabaseOptions = new()
         {
-            ["GF RCMP Caucasian"] = "RCMP Combined Caucasian.csv",
-            ["GF RCMP Cree"] = "RCMP Cree (Saskatchewan).csv",
-            ["GF RCMP Ojibwe"] = "RCMP Ojibwe (Northern Ontario).csv",
-            ["GF RCMP Salishan"] = "RCMP Salishan (B.C.).csv",
-            ["GF NIST African American"] = "NIST1036_AfAm.csv",
-            ["GF NIST Asian"] = "NIST1036_Asian.csv",
-            ["IDP South Asian"] = "South Asian.csv",
-            ["IDP Russian"] = "IDP Russian.csv",
+            ["FBI Caucasian"] = "FBI_Caucasian.csv",
+            ["FBI African American"] = "FBI_African American.csv",
+            ["FBI SE Hispanic"] = "FBI_SE Hispanic.csv",
+            ["FBI SW Hispanic"] = "FBI_SW Hispanic.csv",
+            ["FBI Apache"] = "FBI_Apache.csv",
+            ["FBI Navajo"] = "FBI_Navajo.csv",
+            ["FBI Bahamian"] = "FBI_Bahamian.csv",
+            ["FBI Jamaican"] = "FBI_Jamaican.csv",
+            ["FBI Trinidadian"] = "FBI_Trinidadian.csv",
+            ["FBI Chamorro"] = "FBI_Chamorro.csv",
+            ["FBI Filipino"] = "FBI_Filipino.csv",
+            ["NIST African American"] = "NIST1036_AfAm.csv",
+            ["NIST Asian"] = "NIST1036_Asian.csv",
+            ["NIST Caucasian"] = "NIST1036_Cauc.csv",
+            ["NIST Hispanic"] = "NIST1036_Hisp.csv",
+            ["Xinjiang Uyghur"] = "Xinjiang Uyghur.csv",
+            ["Chinese Qiang"] = "Chinese Qiang.csv",
+            ["Kenyan Bantu"] = "Kenyan Bantu.csv",
+            ["Ethiopian Tigray"] = "Ethiopian Tigray.csv",
         };
 
         // Channel configurations
