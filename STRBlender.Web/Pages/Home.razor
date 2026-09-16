@@ -121,7 +121,6 @@
                 @foreach (var kvp in channels)
                 {
                     <div class="mb-2" @key="kvp.Key">
-                        <div class="small text-muted">@kvp.Key</div>
                         <EpgChart FinalPeaks="finalPeaks"
                                   Loci="kvp.Value.Loci"
                                   Color="kvp.Value.Color"

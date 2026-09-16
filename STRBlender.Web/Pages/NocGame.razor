@@ -167,7 +167,6 @@
                 @foreach (var kvp in channels)
                 {
                     <div class="mb-2" @key="kvp.Key">
-                        <div class="small text-muted">@kvp.Key</div>
                         <div style="position:relative;">
                             <div style="opacity:@(anyOverlayChecked ? 0.25 : 1.0);">
                                 <EpgChart FinalPeaks="finalPeaks"
@@ -200,8 +199,12 @@
     private string selectedDatabase = "FBI Caucasian";
     private int minContributors = 1;
     private int maxContributors = 3;
-    private double _minDegradation = -0.0015;
-    private double _maxDegradation = -0.001;
+    // Degradation is a negative coefficient: values closer to 0 are milder,
+    // more negative values are more severe. Min = mildest (closest to 0),
+    // Max = most severe (most negative) — same mild-to-severe ordering as
+    // the Proportion/Template ranges above.
+    private double _minDegradation = -0.001;
+    private double _maxDegradation = -0.0015;
 
     private double minDegradation
     {
@@ -209,7 +212,7 @@
         set
         {
             _minDegradation = Math.Clamp(value, -0.03, 0);
-            if (_minDegradation > _maxDegradation)
+            if (_minDegradation < _maxDegradation)
                 _maxDegradation = _minDegradation;
         }
     }
@@ -220,7 +223,7 @@
         set
         {
             _maxDegradation = Math.Clamp(value, -0.03, 0);
-            if (_maxDegradation < _minDegradation)
+            if (_maxDegradation > _minDegradation)
                 _minDegradation = _maxDegradation;
         }
     }

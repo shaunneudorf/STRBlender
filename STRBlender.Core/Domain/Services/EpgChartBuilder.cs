@@ -85,7 +85,7 @@ namespace STRBlender.Core.Domain.Services
             double canvasHeight,
             double marginLeft = 55.0,
             double marginRight = 20.0,
-            double marginTop = 25.0,
+            double marginTop = 42.0,
             double marginBottom = 120.0,
             int samplePoints = 0)
         {
@@ -133,7 +133,7 @@ namespace STRBlender.Core.Domain.Services
             double yMax = yDisplay.Max();
             double truePeakMax = visible.Any() ? visible.Max(p => p.Height) : 0;
             double yRange = Math.Max(Math.Max(yMax, truePeakMax), 150);
-            double yAxisMax = RoundUpNice(yRange * 1.20);
+            double yAxisMax = RoundUpNice(yRange * 1);
 
             double ToScreenX(double bp) => marginLeft + (bp - XMin) / (XMax - XMin) * plotW;
             double ToScreenY(double rfu) => marginTop + plotH - (rfu / yAxisMax * plotH);
@@ -183,13 +183,14 @@ namespace STRBlender.Core.Domain.Services
                 double sx = ToScreenX(bp);
                 model.XTicks.Add(new ChartTick(
                     new ChartLineSegment(sx, marginTop, sx, marginTop - 5),
-                    new ChartPoint(sx, marginTop - 13),
+                    new ChartPoint(sx, marginTop - 15),
                     ((int)bp).ToString()));
             }
 
             // === LOCUS BARS ===
-            double barTop = marginTop + 4;
-            double barBottom = marginTop + 22;
+            double barHeight = 16;
+            double barBottom = marginTop - 16;
+            double barTop = barBottom - barHeight;
             foreach (var locus in loci)
             {
                 var (minMw, maxMw) = LocusDefinitions.GetLocusBounds(locus);
@@ -265,7 +266,7 @@ namespace STRBlender.Core.Domain.Services
             double yAxisMax,
             double marginLeft = 55.0,
             double marginRight = 20.0,
-            double marginTop = 25.0,
+            double marginTop = 42.0,
             double marginBottom = 120.0,
             int nPoints = 2000)
         {
