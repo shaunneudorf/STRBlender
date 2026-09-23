@@ -18,6 +18,12 @@ namespace STRBlender.Core.Domain.Models
     /// rather than Core pre-measuring text width, which isn't portable.
     public record ChartLocusBar(double X, double Y, double Width, double Height, ChartPoint LabelCenter, string LocusName);
 
+    /// One allelic-ladder bin, already converted to a screen-space vertical
+    /// band (X/Width from the ladder allele's MW range, Y/Height spanning
+    /// the plot's full data area) so a platform renderer just draws a
+    /// rectangle — no further math needed.
+    public record ChartBin(double X, double Y, double Width, double Height, string Locus, string Allele);
+
     /// One peak's allele/height label box, plus the connecting stem line from
     /// the peak apex up to the box.
     public record ChartPeakLabel(
@@ -47,6 +53,7 @@ namespace STRBlender.Core.Domain.Models
         public List<ChartTick> XTicks { get; set; } = new();
         public List<ChartLocusBar> LocusBars { get; set; } = new();
         public List<ChartPeakLabel> PeakLabels { get; set; } = new();
+        public List<ChartBin> Bins { get; set; } = new();
     }
 
     /// A single contributor's overlay curve on top of an existing channel plot
@@ -87,7 +94,9 @@ namespace STRBlender.Core.Domain.Services
             double marginRight = 20.0,
             double marginTop = 42.0,
             double marginBottom = 120.0,
-            int samplePoints = 0)
+            int samplePoints = 0,
+            KitDefinition kit = null,
+            double? fixedYAxisMax = null)
         {
             // samplePoints <= 0 → desktop default NPoints; web should pass ~600–1000.
             int n = samplePoints > 10 ? samplePoints : NPoints;
@@ -133,10 +142,17 @@ namespace STRBlender.Core.Domain.Services
             double yMax = yDisplay.Max();
             double truePeakMax = visible.Any() ? visible.Max(p => p.Height) : 0;
             double yRange = Math.Max(Math.Max(yMax, truePeakMax), 150);
-            double yAxisMax = RoundUpNice(yRange * 1);
+
+            // fixedYAxisMax lets a caller lock the scale (e.g. a "zoom to
+            // 600" toggle) instead of auto-fitting to the tallest peak —
+            // useful for consistently viewing stochastic-threshold behavior
+            // regardless of how tall any given peak happens to be.
+            double yAxisMax = fixedYAxisMax ?? RoundUpNice(yRange * 1);
 
             double ToScreenX(double bp) => marginLeft + (bp - XMin) / (XMax - XMin) * plotW;
-            double ToScreenY(double rfu) => marginTop + plotH - (rfu / yAxisMax * plotH);
+            // Clamped to marginTop so a peak taller than yAxisMax flat-tops
+            // at the top of the plot area instead of drawing above it.
+            double ToScreenY(double rfu) => Math.Max(marginTop, marginTop + plotH - (rfu / yAxisMax * plotH));
             double zeroY = ToScreenY(0);
 
             var model = new EpgChartModel
@@ -193,7 +209,7 @@ namespace STRBlender.Core.Domain.Services
             double barTop = barBottom - barHeight;
             foreach (var locus in loci)
             {
-                var (minMw, maxMw) = LocusDefinitions.GetLocusBounds(locus);
+                var (minMw, maxMw) = kit != null ? kit.GetLocusBounds(locus) : LocusDefinitions.GetLocusBounds(locus);
                 if (minMw == null || maxMw == null) continue;
 
                 double sx1 = ToScreenX(minMw.Value);
@@ -203,6 +219,27 @@ namespace STRBlender.Core.Domain.Services
                     sx1, barTop, sx2 - sx1, barBottom - barTop,
                     new ChartPoint((sx1 + sx2) / 2, (barTop + barBottom) / 2),
                     locus));
+            }
+
+            // === ALLELIC LADDER BINS ===
+            // Light-grey background bands at each ladder allele's MW
+            // position, spanning the plot's full data area — drawn behind
+            // the curve. Only computed when a kit is supplied, so callers
+            // that don't need bins (or haven't been updated yet) are
+            // unaffected.
+            if (kit != null)
+            {
+                foreach (var bin in kit.BuildLadderBins())
+                {
+                    if (!loci.Contains(bin.Locus)) continue;
+
+                    double sx1 = ToScreenX(bin.MwMin);
+                    double sx2 = ToScreenX(bin.MwMax);
+
+                    model.Bins.Add(new ChartBin(
+                        sx1, marginTop, sx2 - sx1, plotH,
+                        bin.Locus, bin.Allele));
+                }
             }
 
             // === PEAK LABELS ===

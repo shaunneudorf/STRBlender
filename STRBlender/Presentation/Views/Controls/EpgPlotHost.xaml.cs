@@ -15,20 +15,19 @@ namespace STRBlender.Presentation.Views.Controls
         {
             if (peaks?.Count == 0) return;
 
-            var channels = kit == "GLOBALFILER"
-                ? KitConfig.GlobalfilerChannels
-                : KitConfig.IdplusChannels;
+            var kitDef = KitRegistry.Get(kit);
+            var channels = kitDef.Channels;
 
-            EpgPlotter.DrawChannel(plot_Blue, peaks, channels["Blue"].Loci, channels["Blue"].Color, channels["Blue"].Threshold);
-            EpgPlotter.DrawChannel(plot_Green, peaks, channels["Green"].Loci, channels["Green"].Color, channels["Green"].Threshold);
-            EpgPlotter.DrawChannel(plot_Yellow, peaks, channels["Yellow"].Loci, channels["Yellow"].Color, channels["Yellow"].Threshold);
-            EpgPlotter.DrawChannel(plot_Red, peaks, channels["Red"].Loci, channels["Red"].Color, channels["Red"].Threshold);
+            EpgPlotter.DrawChannel(plot_Blue, peaks, channels["Blue"].Loci, channels["Blue"].Color, channels["Blue"].Threshold, kitDef);
+            EpgPlotter.DrawChannel(plot_Green, peaks, channels["Green"].Loci, channels["Green"].Color, channels["Green"].Threshold, kitDef);
+            EpgPlotter.DrawChannel(plot_Yellow, peaks, channels["Yellow"].Loci, channels["Yellow"].Color, channels["Yellow"].Threshold, kitDef);
+            EpgPlotter.DrawChannel(plot_Red, peaks, channels["Red"].Loci, channels["Red"].Color, channels["Red"].Threshold, kitDef);
 
             if (kit == "GLOBALFILER" && channels.ContainsKey("Purple"))
             {
                 plot_Purple.Visibility = Visibility.Visible;
                 plot_Purple.UpdateLayout();   // force layout now so ActualWidth/Height are valid before DrawChannel reads them
-                EpgPlotter.DrawChannel(plot_Purple, peaks, channels["Purple"].Loci, channels["Purple"].Color, channels["Purple"].Threshold);
+                EpgPlotter.DrawChannel(plot_Purple, peaks, channels["Purple"].Loci, channels["Purple"].Color, channels["Purple"].Threshold, kitDef);
             }
             else
             {

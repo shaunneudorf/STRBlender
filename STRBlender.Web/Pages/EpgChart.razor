@@ -1,3 +1,4 @@
+@using STRBlender.Core.Domain.Common
 @using STRBlender.Core.Domain.Models
 @using STRBlender.Core.Domain.Services
 @using System.Text
@@ -17,6 +18,8 @@
     [Parameter] public double Width { get; set; } = 900;
     [Parameter] public double Height { get; set; } = 260;
     [Parameter] public int SamplePoints { get; set; } = 2000;
+    [Parameter] public string Kit { get; set; } = "IDPLUS";
+    [Parameter] public double? FixedYAxisMax { get; set; }
     [Parameter] public EventCallback<double> YAxisMaxChanged { get; set; }
 
     private string staticSvg = "";
@@ -29,6 +32,8 @@
     private int lastThreshold;
     private double lastWidth, lastHeight;
     private int lastSamplePoints;
+    private string? lastKit;
+    private double? lastFixedYAxisMax;
     private bool hasBuilt;
 
     protected override void OnParametersSet()
@@ -40,19 +45,22 @@
             && Threshold == lastThreshold
             && Width == lastWidth
             && Height == lastHeight
-            && SamplePoints == lastSamplePoints;
+            && SamplePoints == lastSamplePoints
+            && Kit == lastKit
+            && FixedYAxisMax == lastFixedYAxisMax;
 
         changedThisPass = !unchanged;
         if (unchanged) return;
 
-        var model = EpgChartBuilder.BuildChannelChart(FinalPeaks, Loci, Color, Threshold, Width, Height, samplePoints: SamplePoints);
+        var kitDef = KitRegistry.Get(Kit);
+        var model = EpgChartBuilder.BuildChannelChart(FinalPeaks, Loci, Color, Threshold, Width, Height, samplePoints: SamplePoints, kit: kitDef, fixedYAxisMax: FixedYAxisMax);
 
         // Two independent fragments. Even though both are rebuilt whenever
         // anything changes, Blazor diffs each MarkupString region separately —
         // if the static fragment's text comes out identical (true whenever
-        // only FinalPeaks changed, since axes/ticks/locus bars don't depend
-        // on peak data), Blazor leaves that part of the DOM untouched, so the
-        // chart frame no longer flashes on every Generate/Resample.
+        // only FinalPeaks changed, since axes/ticks/locus bars/bins don't
+        // depend on peak data), Blazor leaves that part of the DOM untouched,
+        // so the chart frame no longer flashes on every Generate/Resample.
         staticSvg = BuildStaticGroup(model);
         peakSvg = BuildPeakGroup(model);
 
@@ -65,17 +73,27 @@
         lastWidth = Width;
         lastHeight = Height;
         lastSamplePoints = SamplePoints;
+        lastKit = Kit;
+        lastFixedYAxisMax = FixedYAxisMax;
         hasBuilt = true;
     }
 
     protected override bool ShouldRender() => changedThisPass;
 
-    /// Axes, X ticks, and locus bars — depend only on Loci/Width/Height/Color,
-    /// never on peak data, so this fragment's text is stable across Generate/
-    /// Resample calls as long as the kit selection doesn't change.
+    /// Bins, axes, X ticks, and locus bars — depend only on Loci/Kit/Width/
+    /// Height/Color, never on peak data, so this fragment's text is stable
+    /// across Generate/Resample calls as long as the kit selection doesn't
+    /// change.
     private string BuildStaticGroup(EpgChartModel model)
     {
         var sb = new StringBuilder();
+
+        // Bins are appended first so they paint behind everything else
+        // (SVG has no z-index — later elements draw on top of earlier ones).
+        foreach (var bin in model.Bins)
+        {
+            sb.Append(Inv($"<rect x=\"{bin.X}\" y=\"{bin.Y}\" width=\"{bin.Width}\" height=\"{bin.Height}\" fill=\"rgba(128,128,128,0.176)\" />"));
+        }
 
         sb.Append(Line(model.YAxisLine, "black", 0.8));
         sb.Append(Line(model.XAxisLine, "black", 0.8));

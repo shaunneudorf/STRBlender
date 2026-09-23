@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using STRBlender.Core.Domain.Common;
 using STRBlender.Core.Domain.Models;
 using STRBlender.Core.Domain.Services;
 
@@ -17,7 +18,8 @@ namespace STRBlender.Presentation.Plotting
             List<Peak> finalPeaks,
             List<string> loci,
             RgbColor color,
-            int threshold)
+            int threshold,
+            KitDefinition kit = null)
         {
             canvas.Children.Clear();
 
@@ -26,11 +28,25 @@ namespace STRBlender.Presentation.Plotting
 
             if (W < 10 || H < 10)
             {
-                canvas.Loaded += (s, e) => DrawChannel(canvas, finalPeaks, loci, color, threshold);
+                canvas.Loaded += (s, e) => DrawChannel(canvas, finalPeaks, loci, color, threshold, kit);
                 return;
             }
 
-            var model = EpgChartBuilder.BuildChannelChart(finalPeaks, loci, color, threshold, W, H);
+            var model = EpgChartBuilder.BuildChannelChart(finalPeaks, loci, color, threshold, W, H, kit: kit);
+
+            // === ALLELIC LADDER BINS === (drawn first, so everything else sits on top)
+            foreach (var bin in model.Bins)
+            {
+                var binRect = new Rectangle
+                {
+                    Width = bin.Width,
+                    Height = bin.Height,
+                    Fill = new SolidColorBrush(System.Windows.Media.Color.FromArgb(45, 128, 128, 128)),
+                };
+                Canvas.SetLeft(binRect, bin.X);
+                Canvas.SetTop(binRect, bin.Y);
+                canvas.Children.Add(binRect);
+            }
 
             // Store yAxisMax on canvas Tag so DrawOverlay can use the same scale
             canvas.Tag = model.YAxisMax;

@@ -8,9 +8,9 @@
 
 <PageTitle>STRBlender — NOC Game</PageTitle>
 
-<div class="container-fluid py-2">
-    <div class="row">
-        <div class="col-lg-4 col-xl-3 mb-3 compact-sidebar">
+<div class="container-fluid py-2" style="height: calc(100vh - 4.5rem); overflow: hidden;">
+    <div class="row" style="height: 100%;">
+        <div class="col-lg-4 col-xl-3 mb-3 compact-sidebar" style="height: 100%; overflow-y: auto;">
             <h4 class="mb-3">NOC Game</h4>
             <p class="small text-muted">A random mixture is generated within your ranges. Guess the number of contributors.</p>
 
@@ -94,6 +94,9 @@
                 <button class="btn btn-primary" @onclick="GenerateMixture" disabled="@isLoading">
                     @(isLoading ? "Generating…" : "Generate mixture")
                 </button>
+                <button class="btn btn-sm @(zoomTo600 ? "btn-warning" : "btn-outline-warning")" @onclick="() => zoomTo600 = !zoomTo600">
+                    @(zoomTo600 ? "Zoom: 600 RFU (on)" : "Zoom: 600 RFU (off)")
+                </button>
             </div>
 
             @if (mixtureReady)
@@ -156,7 +159,7 @@
             }
         </div>
 
-        <div class="col-lg-8 col-xl-9">
+        <div class="col-lg-8 col-xl-9" style="height: 100%; overflow-y: auto;">
             @if (finalPeaks == null && !isLoading)
             {
                 <p class="text-muted">Set ranges and click <strong>Generate mixture</strong>.</p>
@@ -174,6 +177,8 @@
                                           Color="kvp.Value.Color"
                                           Threshold="kvp.Value.Threshold"
                                           SamplePoints="2000"
+                                          Kit="@selectedKit"
+                                          FixedYAxisMax="@(zoomTo600 ? 600.0 : (double?)null)"
                                           YAxisMaxChanged="v => OnYAxisMaxComputed(kvp.Key, v)" />
                             </div>
                             @if (anyOverlayChecked)
@@ -233,6 +238,7 @@
     private double maxTemplate = 4000;
 
     private bool isLoading;
+    private bool zoomTo600;
     private bool mixtureReady;
     private bool resultVisible;
     private bool correct;
