@@ -4,8 +4,10 @@
 @using System.Text
 @using System.Globalization
 
-<svg width="@Width" height="@Height" viewBox="@($"0 0 {Width} {Height}")"
-     xmlns="http://www.w3.org/2000/svg" style="background:white; font-family: sans-serif;">
+<svg viewBox="@($"0 0 {Width} {Height}")"
+     xmlns="http://www.w3.org/2000/svg"
+     preserveAspectRatio="xMidYMid meet"
+     style="width: 100%; height: auto; display: block; background: white; font-family: sans-serif;">
     @((MarkupString)staticSvg)
     @((MarkupString)peakSvg)
 </svg>

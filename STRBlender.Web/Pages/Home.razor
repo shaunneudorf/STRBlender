@@ -10,32 +10,60 @@
 
 <div class="container-fluid py-2" style="height: calc(100vh - 4.5rem); overflow: hidden;">
     <div class="row" style="height: 100%;">
-        <div class="col-lg-4 col-xl-3 mb-3 compact-sidebar" style="height: 100%; overflow-y: auto;">
-            <h4 class="mb-3">EPG Simulator</h4>
+        <div class="col-lg-4 col-xl-3 mb-3 compact-sidebar" style="height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+            @* ── Fixed top: title + global controls + action buttons ── *@
+            <div class="flex-shrink-0">
+                <h4 class="mb-3">EPG Simulator</h4>
 
-            <div class="mb-2">
-                <label class="form-label fw-semibold">Kit</label>
-                <select class="form-select form-select-sm" value="@selectedKit" @onchange="OnKitChanged">
-                    @foreach (var kit in KitConfig.Kits.Keys)
-                    {
-                        <option value="@kit">@kit</option>
-                    }
-                </select>
+                <div class="mb-2">
+                    <label class="form-label fw-semibold">Kit</label>
+                    <select class="form-select form-select-sm" value="@selectedKit" @onchange="OnKitChanged">
+                        @foreach (var kit in KitConfig.Kits.Keys)
+                        {
+                            <option value="@kit">@kit</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label fw-semibold">Template (RFU): @((int)template)</label>
+                    <input type="range" class="form-range" min="1" max="10000" step="1"
+                           @bind="template" @bind:event="oninput" />
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label fw-semibold">Contributors: @contributorCount</label>
+                    <input type="range" class="form-range" min="1" max="10" step="1"
+                           value="@contributorCount" @onchange="OnContributorCountChanged" />
+                </div>
+
+                <div class="mb-2 d-grid gap-2">
+                    <button class="btn btn-primary" @onclick="Generate" disabled="@isLoading">
+                        @(isLoading ? "Running…" : "Run Simulation")
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="Resample" disabled="@(isLoading || lastProfiles.Count == 0)">
+                        Resample (keep genotypes)
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" @onclick="ShowContributors" disabled="@(isLoading || lastProfiles.Count == 0)">
+                        View Contributors
+                    </button>
+                    <button class="btn btn-sm @(zoomTo600 ? "btn-warning" : "btn-outline-warning")" @onclick="() => zoomTo600 = !zoomTo600">
+                        @(zoomTo600 ? "Zoom: 600 RFU (on)" : "Zoom: 600 RFU (off)")
+                    </button>
+                </div>
+
+                @if (errorMessage != null)
+                {
+                    <div class="alert alert-danger mt-1 py-2 small">@errorMessage</div>
+                }
+                @if (statusMessage != null)
+                {
+                    <div class="text-muted small mt-1 mb-1">@statusMessage</div>
+                }
             </div>
 
-            <div class="mb-2">
-                <label class="form-label fw-semibold">Template (RFU): @((int)template)</label>
-                <input type="range" class="form-range" min="1" max="10000" step="1"
-                       @bind="template" @bind:event="oninput" />
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label fw-semibold">Contributors: @contributorCount</label>
-                <input type="range" class="form-range" min="1" max="10" step="1"
-                       value="@contributorCount" @onchange="OnContributorCountChanged" />
-            </div>
-
-            <div style="max-height: 55vh; overflow-y: auto;">
+            @* ── Scrollable contributor cards (fills remaining height; single scrollbar) ── *@
+            <div class="flex-grow-1" style="min-height: 0; overflow-y: auto;">
                 @for (int i = 0; i < contributors.Count; i++)
                 {
                     var idx = i;
@@ -87,33 +115,9 @@
                     </div>
                 }
             </div>
-
-            <div class="mt-3 d-grid gap-2">
-                <button class="btn btn-primary" @onclick="Generate" disabled="@isLoading">
-                    @(isLoading ? "Running…" : "Run Simulation")
-                </button>
-                <button class="btn btn-outline-secondary btn-sm" @onclick="Resample" disabled="@(isLoading || lastProfiles.Count == 0)">
-                    Resample (keep genotypes)
-                </button>
-                <button class="btn btn-outline-info btn-sm" @onclick="ShowContributors" disabled="@(isLoading || lastProfiles.Count == 0)">
-                    View Contributors
-                </button>
-                <button class="btn btn-sm @(zoomTo600 ? "btn-warning" : "btn-outline-warning")" @onclick="() => zoomTo600 = !zoomTo600">
-                    @(zoomTo600 ? "Zoom: 600 RFU (on)" : "Zoom: 600 RFU (off)")
-                </button>
-            </div>
-
-            @if (errorMessage != null)
-            {
-                <div class="alert alert-danger mt-2 py-2 small">@errorMessage</div>
-            }
-            @if (statusMessage != null)
-            {
-                <div class="text-muted small mt-2">@statusMessage</div>
-            }
         </div>
 
-        <div class="col-lg-8 col-xl-9" style="height: 100%; overflow-y: auto;">
+        <div class="col-lg-8 col-xl-9" style="height: 100%; overflow-y: auto; overflow-x: hidden;">
             @if (finalPeaks == null && !isLoading)
             {
                 <p class="text-muted">Set contributors and click <strong>Run Simulation</strong>.</p>
@@ -123,7 +127,7 @@
                 var channels = selectedKit == "IDPLUS" ? KitConfig.IdplusChannels : KitConfig.GlobalfilerChannels;
                 @foreach (var kvp in channels)
                 {
-                    <div class="mb-2" @key="kvp.Key">
+                    <div class="mb-2" @key="kvp.Key" style="width: 100%;">
                         <EpgChart FinalPeaks="finalPeaks"
                                   Loci="kvp.Value.Loci"
                                   Color="kvp.Value.Color"
@@ -387,7 +391,7 @@
             finalPeaks = result.FinalPeaks;
             lastProfiles = result.Profiles;
             lastPedigree = result.CachedPedigree;
-            statusMessage = $"{paramList.Count} contributor(s) · {selectedKit}";
+            statusMessage = $"{result.FinalPeaks.Count} peaks · {paramList.Count} contributor(s) · {selectedKit}";
         }
         catch (Exception ex)
         {
