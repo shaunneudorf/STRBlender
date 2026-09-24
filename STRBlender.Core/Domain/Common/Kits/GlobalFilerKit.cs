@@ -29,9 +29,7 @@ namespace STRBlender.Core.Domain.Common.Kits
             };
 
             // Same k/b/a/efficiency/min-max values as the original
-            // LocusDefinitions.GlobalfilerLoci table. YINDEL has no entry
-            // here because its MW is handled as a fixed-value special case
-            // in KitDefinition.CalculateMw (only alleles "1"/"2" exist).
+            // LocusDefinitions.GlobalfilerLoci table.
             var locusParams = new Dictionary<string, LocusParams>
             {
                 ["D3S1358"] = new(9, 96.48, 4.15, 1.0, 96.47, 141.54),
@@ -39,7 +37,7 @@ namespace STRBlender.Core.Domain.Common.Kits
                 ["D16S539"] = new(5, 227.36, 4.06, 1.0, 227.32, 267.89),
                 ["CSF1PO"] = new(6, 283.215, 4.00, 1.0, 283.17, 319.25),
                 ["TPOX"] = new(5, 338.405, 4.03, 1.0, 338.30, 378.92),
-                ["YINDEL"] = new(0, 0, 0.0, 0, 78.91, 88.31),
+                ["YINDEL"] = new(0, 0, 0.0, 1.0, 78.91, 88.31),
                 ["AMEL"] = new(0, 106.0, 0.0, 1.00, 104.0, 110.69),
                 ["D8S1179"] = new(5, 114.165, 4.06, 1.0, 114.15, 171.33),
                 ["D21S11"] = new(24, 183.015, 4.08, 1.0, 182.98, 239.82),
