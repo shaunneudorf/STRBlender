@@ -159,7 +159,7 @@
             }
         </div>
 
-        <div class="col-lg-8 col-xl-9" style="height: 100%; overflow-y: auto;">
+        <div class="col-lg-8 col-xl-9" style="height: 100%; overflow-y: auto; overflow-x: hidden;">
             @if (finalPeaks == null && !isLoading)
             {
                 <p class="text-muted">Set ranges and click <strong>Generate mixture</strong>.</p>
@@ -169,8 +169,8 @@
                 var channels = selectedKit == "IDPLUS" ? KitConfig.IdplusChannels : KitConfig.GlobalfilerChannels;
                 @foreach (var kvp in channels)
                 {
-                    <div class="mb-2" @key="kvp.Key">
-                        <div style="position:relative;">
+                    <div class="mb-2" @key="kvp.Key" style="width: 100%;">
+                        <div style="position:relative; width: 100%;">
                             <div style="opacity:@(anyOverlayChecked ? 0.25 : 1.0);">
                                 <EpgChart FinalPeaks="finalPeaks"
                                           Loci="kvp.Value.Loci"

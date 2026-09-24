@@ -3,9 +3,11 @@
 @using System.Text
 @using System.Globalization
 
-<div style="position:absolute; top:0; left:0; pointer-events:none;">
-    <svg width="@Width" height="@Height" viewBox="@($"0 0 {Width} {Height}")"
-         xmlns="http://www.w3.org/2000/svg">
+<div style="position:absolute; inset:0; pointer-events:none;">
+    <svg viewBox="@($"0 0 {Width} {Height}")"
+         xmlns="http://www.w3.org/2000/svg"
+         preserveAspectRatio="xMidYMid meet"
+         style="width: 100%; height: 100%; display: block;">
         @((MarkupString)svgMarkup)
     </svg>
 </div>
