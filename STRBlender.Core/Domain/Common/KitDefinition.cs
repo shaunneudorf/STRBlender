@@ -5,25 +5,22 @@ namespace STRBlender.Core.Domain.Common
 {
     /// Per-locus MW regression parameters (moved here from the old
     /// LocusDefinitions.cs, unchanged) — k/b/a feed the same linear
-    /// allele→MW conversion as before; efficiency and min/max MW are used
-    /// by peak height modeling and locus bounds checks respectively.
+    /// allele→MW conversion as before; efficiency is used by peak height
+    /// modeling. No stored min/max MW here — the locus bar's range is
+    /// derived live from the ladder (see KitDefinition.GetLocusBounds), so
+    /// there's no separate min/max value that could ever drift out of sync
+    /// with the ladder it's supposed to describe.
     public class LocusParams
     {
-        public double K { get; }
-        public double B { get; }
-        public double A { get; }
+        public double Intercept { get; }  // Was B
+        public double Slope { get; }      // Was A
         public double Efficiency { get; }
-        public double? MinMW { get; }
-        public double? MaxMW { get; }
 
-        public LocusParams(double k, double b, double a, double efficiency, double? minMW, double? maxMW)
+        public LocusParams(double intercept, double slope, double efficiency)
         {
-            K = k;
-            B = b;
-            A = a;
+            Intercept = intercept;
+            Slope = slope;
             Efficiency = efficiency;
-            MinMW = minMW;
-            MaxMW = maxMW;
         }
     }
 
@@ -77,20 +74,36 @@ namespace STRBlender.Core.Domain.Common
             if (!double.TryParse(allele, out double alleleNum))
                 return null;
 
-            return AlleleToMw(alleleNum, p.K, p.B, p.A);
+            return AlleleToMw(alleleNum, p.Intercept, p.Slope);
         }
 
         public double GetEfficiency(string locus) =>
             LocusParamsByLocus.TryGetValue(locus, out var p) ? p.Efficiency : 1.0;
 
-        public (double? MinMw, double? MaxMw) GetLocusBounds(string locus) =>
-            LocusParamsByLocus.TryGetValue(locus, out var p) ? (p.MinMW, p.MaxMW) : (null, null);
+        /// The locus bar's range: the lowest and highest MW across that
+        /// locus's own ladder alleles, computed live from the ladder (not a
+        /// separately stored value) — so the bar always exactly matches
+        /// where the ladder's own peaks/bins actually sit, tight to the
+        /// alleles you've entered rather than an official spec's Min/Max
+        /// Size, which intentionally pads beyond the printed ladder to
+        /// accommodate off-ladder calls and isn't recoverable from k/b/a.
+        public (double? MinMw, double? MaxMw) GetLocusBounds(string locus)
+        {
+            if (!Ladder.TryGetValue(locus, out var alleles) || alleles.Count == 0)
+                return (null, null);
 
-        private static double AlleleToMw(double allele, double k, double b, double a)
+            var mws = alleles.Select(a => CalculateMw(locus, a)).Where(mw => mw.HasValue).Select(mw => mw!.Value).ToList();
+            if (mws.Count == 0)
+                return (null, null);
+
+            return (mws.Min(), mws.Max());
+        }
+
+        private static double AlleleToMw(double allele, double intercept, double slope)
         {
             int integerPart = (int)allele;
             double fractionalPart = allele - integerPart;
-            return (integerPart - k) * a + (fractionalPart * 10) + b;
+            return integerPart * slope + (fractionalPart * 10) + intercept;
         }
 
         /// Fixed bin half-width, in MW/bp data-space units (the same units

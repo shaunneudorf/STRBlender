@@ -86,7 +86,7 @@
 
                 <!-- Buttons -->
                 <StackPanel Grid.Column="2" VerticalAlignment="Top" Margin="15,20,10,0">
-                    <Button Content="Run Simulation" Click="btn_Run_Click" FontWeight="Bold" Padding="12,10" Margin="0,6"/>
+                    <Button Content="Generate Profile" Click="btn_Run_Click" FontWeight="Bold" Padding="12,10" Margin="0,6"/>
                     <Button Content="Resample" Click="btn_Resample_Click" Padding="12,10" Margin="0,6"/>
                     <Button Content="View Contributors" Click="btn_ViewContributors_Click" Padding="12,10" Margin="0,6"/>
                     <Button Content="Export Sample" Click="btn_ExportSample_Click" Padding="12,10" Margin="0,6"/>

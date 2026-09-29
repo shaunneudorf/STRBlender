@@ -28,34 +28,40 @@ namespace STRBlender.Core.Domain.Common.Kits
                 ["Purple"] = new ChannelConfig(new List<string> { "D10S1248", "D1S1656", "D12S391", "D2S1338" }, RgbColor.Purple, 150),
             };
 
-            // Same k/b/a/efficiency/min-max values as the original
-            // LocusDefinitions.GlobalfilerLoci table.
+            // k/b/a/efficiency are sourced from GlobalFiler's own kit/panel
+            // definition. There's no stored min/max MW here — the locus bar
+            // is derived live from the ladder below (KitDefinition.
+            // GetLocusBounds), so it always hugs the actual ladder allele
+            // range rather than any padded official spec value.
+            // YINDEL has no entry here because its MW is handled as a
+            // fixed-value special case in KitDefinition.CalculateMw (only
+            // alleles "1"/"2" exist).
             var locusParams = new Dictionary<string, LocusParams>
             {
-                ["D3S1358"] = new(9, 96.48, 4.15, 1.0, 96.47, 141.54),
-                ["vWA"] = new(11, 156.57, 4.07, 1.0, 156.55, 209.44),
-                ["D16S539"] = new(5, 227.36, 4.06, 1.0, 227.32, 267.89),
-                ["CSF1PO"] = new(6, 283.215, 4.00, 1.0, 283.17, 319.25),
-                ["TPOX"] = new(5, 338.405, 4.03, 1.0, 338.30, 378.92),
-                ["YINDEL"] = new(0, 0, 0.0, 1.0, 78.91, 88.31),
-                ["AMEL"] = new(0, 106.0, 0.0, 1.00, 104.0, 110.69),
-                ["D8S1179"] = new(5, 114.165, 4.06, 1.0, 114.15, 171.33),
-                ["D21S11"] = new(24, 183.015, 4.08, 1.0, 182.98, 239.82),
-                ["D18S51"] = new(7, 261.25, 4.05, 1.0, 261.21, 342.42),
-                ["DYS391"] = new(7, 365.15, 4.03, 1.0, 365.11, 389.37),
-                ["D2S441"] = new(8, 76.575, 4.10, 1.0, 76.55, 113.68),
-                ["D19S433"] = new(6, 118.535, 3.95, 1.0, 118.52, 171.61),
-                ["TH01"] = new(4, 179.205, 4.05, 1.0, 179.17, 210.44),
-                ["FGA"] = new(13, 223.465, 4.03, 1.0, 218.00, 378.41),
-                ["D22S1045"] = new(8, 88.31, 3.99, 1.0, 88.29, 135.00),
-                ["D5S818"] = new(7, 138.59, 4.08, 1.0, 138.58, 183.37),
-                ["D13S317"] = new(5, 198.975, 4.06, 1.0, 198.96, 243.32),
-                ["D7S820"] = new(6, 262.575, 4.00, 1.0, 262.55, 298.49),
-                ["SE33"] = new(8, 321.58, 4.06, 1.0, 307.19, 440.0),
-                ["D10S1248"] = new(8, 85.385, 4.05, 1.0, 85.37, 129.75),
-                ["D1S1656"] = new(9, 159.99, 4.02, 1.0, 159.98, 207.38),
-                ["D12S391"] = new(14, 216.575, 4.05, 1.0, 216.54, 268.63),
-                ["D2S1338"] = new(11, 281.73, 4.05, 1.0, 281.68, 349.95),
+                ["D3S1358"] = new(60.14, 4.08, 1.05),
+                ["vWA"] = new(112.22, 4.05, 1.0),
+                ["D16S539"] = new(207.44, 4.05, 1.0),
+                ["CSF1PO"] = new(259.29, 3.97, 1.15),
+                ["TPOX"] = new(318.25, 4.05, 0.85),
+                ["YINDEL"] = new(0, 0.0, 1.0),
+                ["AMEL"] = new(106.0, 0.0, 1.0),
+                ["D8S1179"] = new(93.73, 4.1, 1.12),
+                ["D21S11"] = new(86.11, 4.04, 1.25),
+                ["D18S51"] = new(233.0, 4.05, 1.35),
+                ["DYS391"] = new(337.1, 4.03, 1.12),
+                ["D2S441"] = new(43.86, 4.11, 0.85),
+                ["D19S433"] = new(94.67, 3.93, 0.85),
+                ["TH01"] = new(163.19, 4.02, 0.8),
+                ["FGA"] = new(171.15, 4.02, 0.9),
+                ["D22S1045"] = new(64.63, 2.98, 1.1),
+                ["D5S818"] = new(110.28, 4.06, 1.2),
+                ["D13S317"] = new(178.67, 4.03, 1.35),
+                ["D7S820"] = new(238.71, 3.99, 1.1),
+                ["SE33"] = new(289.39, 4.04, 1.5),
+                ["D10S1248"] = new(53.55, 4.00, 1.25),
+                ["D1S1656"] = new(121.63, 4.22, 1.4),
+                ["D12S391"] = new(160.58, 3.97, 1.15),
+                ["D2S1338"] = new(236.45, 4.02, 1.4),
             };
 
             // Allelic ladder alleles per locus, from the kit's user guide.
