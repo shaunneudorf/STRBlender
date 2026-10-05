@@ -82,6 +82,11 @@ namespace STRBlender.Core.Domain.Services
         public const double XMax = 450.0;
         private const int NPoints = 4000;
         private const double Sigma = 0.25;
+        private const int MaxPeakLabelLevels = 5;
+        private const double PeakLabelLevelStep = 24.5;
+        private const double PeakLabelBoxHeight = 24.0;
+        private const double PeakLabelMinBoxWidth = 25.0;
+        private const double PeakLabelHorizontalGap = 4.0;
 
         public static EpgChartModel BuildChannelChart(
             List<Peak> finalPeaks,
@@ -243,13 +248,10 @@ namespace STRBlender.Core.Domain.Services
             }
 
             // === PEAK LABELS ===
-            var labelLevels = new Dictionary<double, int>();
-            int maxLevels = 5;
-            double levelStep = 24.5;
             double labelTopBase = zeroY + 3.0;
-            double boxW = 25.0;
-            double boxH = 24.0;
-            double hThreshPx = boxW + 4.0;
+            var occupiedLabelIntervals = Enumerable.Range(0, MaxPeakLabelLevels)
+                .Select(_ => new List<(double Left, double Right)>())
+                .ToArray();
 
             foreach (var peak in visible.OrderBy(p => p.Mw))
             {
@@ -260,37 +262,123 @@ namespace STRBlender.Core.Domain.Services
                 if (effectiveHeight < threshold) continue;
 
                 double xPos = peak.Mw.Value;
-
-                int bestLevel = 0;
-                while (true)
-                {
-                    bool conflict = labelLevels.Any(kv =>
-                        kv.Value == bestLevel &&
-                        Math.Abs(ToScreenX(kv.Key) - ToScreenX(xPos)) < hThreshPx);
-                    if (!conflict) break;
-                    bestLevel++;
-                    if (bestLevel >= maxLevels) { bestLevel = 0; break; }
-                }
-                labelLevels[xPos] = bestLevel;
-
-                double sx = ToScreenX(xPos);
-                double sy = ToScreenY(effectiveHeight);
-                double boxTop = labelTopBase + bestLevel * levelStep;
-                double boxLeft = sx - boxW / 2;
-
                 string alleleText = double.TryParse(peak.Allele, out double av)
                     ? (av == Math.Floor(av) ? ((int)av).ToString() : av.ToString("F1"))
                     : peak.Allele;
                 string heightText = ((int)Math.Round(peak.Height)).ToString();
+                double boxW = Math.Min(CalculatePeakLabelWidth(alleleText, heightText), canvasWidth);
+                double sx = ToScreenX(xPos);
+                double sy = ToScreenY(effectiveHeight);
+                double minCenter = boxW / 2;
+                double maxCenter = canvasWidth - boxW / 2;
+
+                int bestLevel = -1;
+                double bestCenter = Math.Clamp(sx, minCenter, maxCenter);
+                double bestDisplacement = double.PositiveInfinity;
+
+                for (int level = 0; level < MaxPeakLabelLevels; level++)
+                {
+                    double? candidateCenter = FindNearestAvailableLabelCenter(
+                        occupiedLabelIntervals[level], sx, boxW, minCenter, maxCenter);
+                    if (!candidateCenter.HasValue) continue;
+
+                    double displacement = Math.Abs(candidateCenter.Value - sx);
+                    if (displacement >= bestDisplacement) continue;
+
+                    bestLevel = level;
+                    bestCenter = candidateCenter.Value;
+                    bestDisplacement = displacement;
+                }
+
+                double boxLeft = bestCenter - boxW / 2;
+                if (bestLevel < 0)
+                {
+                    bestLevel = Enumerable.Range(0, MaxPeakLabelLevels)
+                        .OrderBy(level => occupiedLabelIntervals[level].Count(interval =>
+                            IntervalsOverlap(boxLeft, boxLeft + boxW, interval.Left, interval.Right)))
+                        .First();
+                }
+
+                occupiedLabelIntervals[bestLevel].Add((boxLeft, boxLeft + boxW));
+                double boxTop = labelTopBase + bestLevel * PeakLabelLevelStep;
 
                 model.PeakLabels.Add(new ChartPeakLabel(
-                    new ChartLineSegment(sx, sy + 4, sx, boxTop),
-                    boxLeft, boxTop, boxW, boxH,
+                    new ChartLineSegment(sx, sy + 4, bestCenter, boxTop),
+                    boxLeft, boxTop, boxW, PeakLabelBoxHeight,
                     alleleText, heightText));
             }
 
             return model;
         }
+
+        private static double CalculatePeakLabelWidth(string alleleText, string heightText)
+        {
+            double textWidth = Math.Max(EstimatePeakLabelTextWidth(alleleText), EstimatePeakLabelTextWidth(heightText));
+            return Math.Max(PeakLabelMinBoxWidth, Math.Ceiling(textWidth + 8.0));
+        }
+
+        private static double EstimatePeakLabelTextWidth(string text)
+        {
+            double width = 0;
+            foreach (char character in text)
+            {
+                width += character switch
+                {
+                    '.' => 2.3,
+                    '-' => 2.7,
+                    _ when char.IsDigit(character) => 4.5,
+                    _ => 4.5,
+                };
+            }
+
+            return width;
+        }
+
+        private static double? FindNearestAvailableLabelCenter(
+            List<(double Left, double Right)> occupiedIntervals,
+            double desiredCenter,
+            double boxWidth,
+            double minCenter,
+            double maxCenter)
+        {
+            if (minCenter > maxCenter) return null;
+
+            double halfWidthWithGap = boxWidth / 2 + PeakLabelHorizontalGap;
+            var blockedIntervals = occupiedIntervals
+                .Select(interval => (
+                    Left: interval.Left - halfWidthWithGap,
+                    Right: interval.Right + halfWidthWithGap))
+                .OrderBy(interval => interval.Left);
+
+            double cursor = minCenter;
+            double bestCenter = 0;
+            double bestDistance = double.PositiveInfinity;
+
+            foreach (var interval in blockedIntervals)
+            {
+                ConsiderAvailableRange(cursor, Math.Min(interval.Left, maxCenter));
+                cursor = Math.Max(cursor, interval.Right);
+                if (cursor > maxCenter) break;
+            }
+
+            ConsiderAvailableRange(cursor, maxCenter);
+            return double.IsPositiveInfinity(bestDistance) ? null : bestCenter;
+
+            void ConsiderAvailableRange(double start, double end)
+            {
+                if (start > end) return;
+
+                double center = Math.Clamp(desiredCenter, start, end);
+                double distance = Math.Abs(center - desiredCenter);
+                if (distance >= bestDistance) return;
+
+                bestCenter = center;
+                bestDistance = distance;
+            }
+        }
+
+        private static bool IntervalsOverlap(double left1, double right1, double left2, double right2) =>
+            left1 < right2 + PeakLabelHorizontalGap && right1 > left2 - PeakLabelHorizontalGap;
 
         /// Builds a single contributor's overlay curve (fill + line only) at
         /// the same scale as an already-built base chart — pass that chart's
