@@ -17,6 +17,7 @@
     [Parameter] public List<string> Loci { get; set; } = new();
     [Parameter] public RgbColor Color { get; set; } = RgbColor.Blue;
     [Parameter] public double YAxisMax { get; set; } = 5000;
+    [Parameter] public double XAxisMax { get; set; } = EpgChartBuilder.XMax;
     [Parameter] public double Width { get; set; } = 900;
     [Parameter] public double Height { get; set; } = 260;
 
@@ -24,7 +25,7 @@
 
     protected override void OnParametersSet()
     {
-        var model = EpgChartBuilder.BuildOverlay(OverlayPeaks, Loci, Width, Height, YAxisMax);
+        var model = EpgChartBuilder.BuildOverlay(OverlayPeaks, Loci, Width, Height, YAxisMax, xMax: XAxisMax);
 
         var sb = new StringBuilder();
         // Matches the desktop app's DrawOverlay: fill alpha 190, line alpha 220.

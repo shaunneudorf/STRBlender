@@ -239,7 +239,8 @@ namespace STRBlender.Presentation.Plotting
             List<string> loci,
             RgbColor color,
             int threshold,
-            byte alpha = 130)
+            byte alpha = 130,
+            KitDefinition kit = null)
         {
             double W = canvas.ActualWidth;
             double H = canvas.ActualHeight;
@@ -248,7 +249,8 @@ namespace STRBlender.Presentation.Plotting
             // Use the yAxisMax stored by DrawChannel so scales match exactly
             double yAxisMax = canvas.Tag is double storedMax ? storedMax : 5000;
 
-            var model = EpgChartBuilder.BuildOverlay(peaks, loci, W, H, yAxisMax);
+            var model = EpgChartBuilder.BuildOverlay(peaks, loci, W, H, yAxisMax,
+                xMax: kit != null ? kit.XAxisMax : EpgChartBuilder.XMax);
             if (model.LinePoints.Count == 0) return;
 
             var fillColor = System.Windows.Media.Color.FromArgb(alpha, color.R, color.G, color.B);

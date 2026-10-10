@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace STRBlender.Core.Domain.Common
@@ -65,7 +66,16 @@ namespace STRBlender.Core.Domain.Common
         public double? CalculateMw(string locus, string allele)
         {
             if (locus == "AMEL")
-                return allele == "X" ? 106.0 : allele == "Y" ? 110.0 : null;
+            {
+                // Per-kit X position comes from the kit's own AMEL entry
+                // (Intercept); Y always sits 4 bp above X. Kits without an
+                // AMEL entry keep the original 106/110 placement.
+                double amelX = LocusParamsByLocus.TryGetValue("AMEL", out var amelParams)
+                    && !double.IsNaN(amelParams.Intercept)
+                        ? amelParams.Intercept
+                        : 106.0;
+                return allele == "X" ? amelX : allele == "Y" ? amelX + 4.0 : null;
+            }
             if (locus == "YINDEL")
                 return allele == "1" ? 81.075 : allele == "2" ? 86.345 : null;
 
@@ -75,6 +85,38 @@ namespace STRBlender.Core.Domain.Common
                 return null;
 
             return AlleleToMw(alleleNum, p.Intercept, p.Slope);
+        }
+
+        /// Smallest x-axis (bp) value used when charting this kit.
+        public const double DefaultXAxisMin = 50.0;
+
+        /// Default x-axis maximum (bp). Kits whose ladders reach further
+        /// (e.g. PowerPlex Fusion) get a larger value from XAxisMax.
+        public const double DefaultXAxisMax = 450.0;
+
+        private double? _xAxisMax;
+
+        /// Right edge of the EPG x-axis for this kit, in bp: the highest ladder
+        /// allele MW plus a 10 bp margin, rounded up to the next 50 bp tick,
+        /// and never below the original 450 bp. IDplus and GlobalFiler stay at
+        /// 450; longer kits such as PowerPlex Fusion widen automatically.
+        public double XAxisMax
+        {
+            get
+            {
+                if (_xAxisMax.HasValue) return _xAxisMax.Value;
+
+                double maxMw = 0;
+                foreach (var locus in Loci)
+                {
+                    var (_, hi) = GetLocusBounds(locus);
+                    if (hi.HasValue && hi.Value > maxMw) maxMw = hi.Value;
+                }
+
+                double needed = Math.Ceiling((maxMw + 10.0) / 50.0) * 50.0;
+                _xAxisMax = Math.Max(DefaultXAxisMax, needed);
+                return _xAxisMax.Value;
+            }
         }
 
         public double GetEfficiency(string locus) =>

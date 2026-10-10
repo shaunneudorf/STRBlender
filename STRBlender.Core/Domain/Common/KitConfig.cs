@@ -21,6 +21,11 @@ namespace STRBlender.Core.Domain.Common
         public static readonly Dictionary<string, ChannelConfig> GlobalfilerChannels =
             KitRegistry.Get("GLOBALFILER").Channels;
 
+        /// Channel layout for any registered kit (use this instead of picking
+        /// IdplusChannels/GlobalfilerChannels with a kit-name comparison).
+        public static Dictionary<string, ChannelConfig> GetChannels(string kitName) =>
+            KitRegistry.Get(kitName).Channels;
+
         // Database options
         public static readonly Dictionary<string, string> DatabaseOptions = new()
         {

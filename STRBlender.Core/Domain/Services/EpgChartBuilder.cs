@@ -106,6 +106,10 @@ namespace STRBlender.Core.Domain.Services
             // samplePoints <= 0 → desktop default NPoints; web should pass ~600–1000.
             int n = samplePoints > 10 ? samplePoints : NPoints;
 
+            // Kit-specific x-axis range (wider for longer kits such as PowerPlex Fusion).
+            double xMin = XMin;
+            double xMax = kit != null ? kit.XAxisMax : XMax;
+
             double plotW = canvasWidth - marginLeft - marginRight;
             double plotH = canvasHeight - marginTop - marginBottom;
 
@@ -114,7 +118,7 @@ namespace STRBlender.Core.Domain.Services
                 .ToList();
 
             double[] baseXData = Enumerable.Range(0, n)
-                .Select(i => XMin + i * ((XMax - XMin) / (n - 1)))
+                .Select(i => xMin + i * ((xMax - xMin) / (n - 1)))
                 .ToArray();
 
             double[] baseNoise = GenerateNoise(color, n);
@@ -154,7 +158,7 @@ namespace STRBlender.Core.Domain.Services
             // regardless of how tall any given peak happens to be.
             double yAxisMax = fixedYAxisMax ?? RoundUpNice(yRange * 1);
 
-            double ToScreenX(double bp) => marginLeft + (bp - XMin) / (XMax - XMin) * plotW;
+            double ToScreenX(double bp) => marginLeft + (bp - xMin) / (xMax - xMin) * plotW;
             // Clamped to marginTop so a peak taller than yAxisMax flat-tops
             // at the top of the plot area instead of drawing above it.
             double ToScreenY(double rfu) => Math.Max(marginTop, marginTop + plotH - (rfu / yAxisMax * plotH));
@@ -199,7 +203,7 @@ namespace STRBlender.Core.Domain.Services
             }
 
             // === X AXIS TICKS ===
-            for (double bp = 100; bp <= 450; bp += 50)
+            for (double bp = 100; bp <= xMax; bp += 50)
             {
                 double sx = ToScreenX(bp);
                 model.XTicks.Add(new ChartTick(
@@ -393,7 +397,8 @@ namespace STRBlender.Core.Domain.Services
             double marginRight = 20.0,
             double marginTop = 42.0,
             double marginBottom = 120.0,
-            int nPoints = 2000)
+            int nPoints = 2000,
+            double xMax = XMax)
         {
             double plotW = canvasWidth - marginLeft - marginRight;
             double plotH = canvasHeight - marginTop - marginBottom;
@@ -402,12 +407,12 @@ namespace STRBlender.Core.Domain.Services
             var model = new EpgOverlayModel();
             if (!visible.Any()) return model;
 
-            double ToScreenX(double bp) => marginLeft + (bp - XMin) / (XMax - XMin) * plotW;
+            double ToScreenX(double bp) => marginLeft + (bp - XMin) / (xMax - XMin) * plotW;
             double ToScreenY(double rfu) => marginTop + plotH - (rfu / yAxisMax * plotH);
             double zeroY = ToScreenY(0);
 
             double[] baseXData = Enumerable.Range(0, nPoints)
-                .Select(i => XMin + i * ((XMax - XMin) / (nPoints - 1)))
+                .Select(i => XMin + i * ((xMax - XMin) / (nPoints - 1)))
                 .ToArray();
 
             var mergedXSet = new SortedSet<double>(baseXData);
@@ -476,6 +481,7 @@ namespace STRBlender.Core.Domain.Services
                 "Green" => 2.0,
                 "Goldenrod" => 2.5,
                 "Red" => 2.3,
+                "Orange" => 2.3,
                 _ => 2.0,
             };
 

@@ -124,7 +124,7 @@
             }
             @if (finalPeaks != null)
             {
-                var channels = selectedKit == "IDPLUS" ? KitConfig.IdplusChannels : KitConfig.GlobalfilerChannels;
+                var channels = KitConfig.GetChannels(selectedKit);
                 @foreach (var kvp in channels)
                 {
                     <div class="mb-2" @key="kvp.Key" style="width: 100%;">

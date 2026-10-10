@@ -14,6 +14,7 @@ namespace STRBlender.Core.Domain.Common
         {
             ["GLOBALFILER"] = GlobalFilerKit.Build(),
             ["IDPLUS"] = IdPlusKit.Build(),
+            ["POWERPLEX FUSION"] = PowerPlexFusionKit.Build(),
         };
 
         static KitRegistry()

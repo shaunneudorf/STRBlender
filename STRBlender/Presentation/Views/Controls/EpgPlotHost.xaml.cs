@@ -21,7 +21,9 @@ namespace STRBlender.Presentation.Views.Controls
             EpgPlotter.DrawChannel(plot_Blue, peaks, channels["Blue"].Loci, channels["Blue"].Color, channels["Blue"].Threshold, kitDef);
             EpgPlotter.DrawChannel(plot_Green, peaks, channels["Green"].Loci, channels["Green"].Color, channels["Green"].Threshold, kitDef);
             EpgPlotter.DrawChannel(plot_Yellow, peaks, channels["Yellow"].Loci, channels["Yellow"].Color, channels["Yellow"].Threshold, kitDef);
-            EpgPlotter.DrawChannel(plot_Red, peaks, channels["Red"].Loci, channels["Red"].Color, channels["Red"].Threshold, kitDef);
+            // plot_Red is the 4th dye slot: "Red" for IDplus/GlobalFiler, "Orange" for PowerPlex.
+            var fourth = channels.TryGetValue("Orange", out var orangeChannel) ? orangeChannel : channels["Red"];
+            EpgPlotter.DrawChannel(plot_Red, peaks, fourth.Loci, fourth.Color, fourth.Threshold, kitDef);
 
             if (kit == "GLOBALFILER" && channels.ContainsKey("Purple"))
             {

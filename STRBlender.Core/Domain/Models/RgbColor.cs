@@ -13,5 +13,6 @@
         public static readonly RgbColor Goldenrod = new(218, 165, 32, "Goldenrod");
         public static readonly RgbColor Red = new(255, 0, 0, "Red");
         public static readonly RgbColor Purple = new(128, 0, 128, "Purple");
+        public static readonly RgbColor Orange = new(230, 100, 0, "Orange");
     }
 }

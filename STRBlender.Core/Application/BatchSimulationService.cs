@@ -80,9 +80,7 @@ namespace STRBlender.Core.Application
             var lociToUse = KitConfig.Kits[spec.Kit];
             LocusDefinitions.SetKit(spec.Kit);
 
-            var channels = spec.Kit == "GLOBALFILER"
-                ? KitConfig.GlobalfilerChannels
-                : KitConfig.IdplusChannels;
+            var channels = KitConfig.GetChannels(spec.Kit);
 
             var locusThresholds = channels.Values
                 .SelectMany(c => c.Loci.Select(locus => new { locus, c.Threshold }))

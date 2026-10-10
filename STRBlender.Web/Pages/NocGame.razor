@@ -166,7 +166,7 @@
             }
             @if (finalPeaks != null)
             {
-                var channels = selectedKit == "IDPLUS" ? KitConfig.IdplusChannels : KitConfig.GlobalfilerChannels;
+                var channels = KitConfig.GetChannels(selectedKit);
                 @foreach (var kvp in channels)
                 {
                     <div class="mb-2" @key="kvp.Key" style="width: 100%;">
@@ -186,7 +186,8 @@
                                 <EpgOverlay OverlayPeaks="overlayPeaks"
                                             Loci="kvp.Value.Loci"
                                             Color="kvp.Value.Color"
-                                            YAxisMax="yAxisMaxByChannel.GetValueOrDefault(kvp.Key, 5000)" />
+                                            YAxisMax="yAxisMaxByChannel.GetValueOrDefault(kvp.Key, 5000)"
+                                            XAxisMax="KitRegistry.Get(selectedKit).XAxisMax" />
                             }
                         </div>
                     </div>

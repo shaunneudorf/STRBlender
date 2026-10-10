@@ -150,9 +150,7 @@ namespace STRBlender.Presentation.ViewModels
             Results.Clear();
             if (FinalPeaks == null || FinalPeaks.Count == 0) return;
 
-            var channels = SelectedKit == "GLOBALFILER"
-                ? KitConfig.GlobalfilerChannels
-                : KitConfig.IdplusChannels;
+            var channels = KitConfig.GetChannels(SelectedKit);
 
             var locusThreshold = channels.Values
                 .SelectMany(c => c.Loci.Select(locus => new { locus, c.Threshold }))
@@ -246,9 +244,7 @@ namespace STRBlender.Presentation.ViewModels
                 {
                     var lociToUse = KitConfig.Kits[SelectedKit];
 
-                    var channels = SelectedKit == "GLOBALFILER"
-                    ? KitConfig.GlobalfilerChannels
-                    : KitConfig.IdplusChannels;
+                    var channels = KitConfig.GetChannels(SelectedKit);
 
                     var locusThresholds = channels.Values
                         .SelectMany(c => c.Loci.Select(locus => new { locus, c.Threshold }))

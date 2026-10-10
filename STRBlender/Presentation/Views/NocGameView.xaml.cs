@@ -171,9 +171,7 @@ namespace STRBlender.Presentation.Views
 
         private void ToggleOverlay(int contributorIndex, bool show)
         {
-            var channels = _viewModel.SelectedKit == "GLOBALFILER"
-                ? KitConfig.GlobalfilerChannels
-                : KitConfig.IdplusChannels;
+            var channels = KitConfig.GetChannels(_viewModel.SelectedKit);
 
             // Clear ONLY overlays (do NOT clear main mixture)
             EpgPlotter.ClearOverlays(epgHost.BlueCanvas);
@@ -212,6 +210,7 @@ namespace STRBlender.Presentation.Views
                     "Green" => epgHost.GreenCanvas,
                     "Yellow" => epgHost.YellowCanvas,
                     "Red" => epgHost.RedCanvas,
+                    "Orange" => epgHost.RedCanvas,   // PowerPlex's 4th dye shares the 4th plot slot
                     "Purple" => epgHost.PurpleCanvas,
                     _ => null
                 };
@@ -219,7 +218,8 @@ namespace STRBlender.Presentation.Views
                 if (canvas == null || canvas.Visibility != Visibility.Visible) continue;
 
                 EpgPlotter.DrawOverlay(canvas, overlayPeaks, channel.Loci,
-                    channel.Color, channel.Threshold, alpha: 190);
+                    channel.Color, channel.Threshold, alpha: 190,
+                    kit: KitRegistry.Get(_viewModel.SelectedKit));
             }
         }
         private int GetGuess()
