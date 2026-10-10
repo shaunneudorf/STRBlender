@@ -22,18 +22,18 @@ namespace STRBlender.Core.Domain.Common.Kits
                 "D16S539","D18S51","D2S1338","CSF1PO","Penta D",
                 // Yellow
                 "TH01","vWA","D21S11","D7S820","D5S818","TPOX","DYS391",
-                // Orange
+                // Red
                 "D8S1179","D12S391","D19S433","FGA","D22S1045"
             };
 
             // Fusion's fifth (size standard) dye is not a marker channel and is not modeled.
-            // The panel table calls the fourth marker dye "Red"; here it is Orange.
+            // The panel table calls the fourth marker dye "Red".
             var channels = new Dictionary<string, ChannelConfig>
             {
                 ["Blue"] = new ChannelConfig(new List<string> { "AMEL", "D3S1358", "D1S1656", "D2S441", "D10S1248", "D13S317", "Penta E" }, RgbColor.Blue, 100),
                 ["Green"] = new ChannelConfig(new List<string> { "D16S539", "D18S51", "D2S1338", "CSF1PO", "Penta D" }, RgbColor.Green, 150),
                 ["Yellow"] = new ChannelConfig(new List<string> { "TH01", "vWA", "D21S11", "D7S820", "D5S818", "TPOX", "DYS391" }, RgbColor.Goldenrod, 150),
-                ["Orange"] = new ChannelConfig(new List<string> { "D8S1179", "D12S391", "D19S433", "FGA", "D22S1045" }, RgbColor.Orange, 175),
+                ["Red"] = new ChannelConfig(new List<string> { "D8S1179", "D12S391", "D19S433", "FGA", "D22S1045" }, RgbColor.Red, 175),
             };
 
             // LocusParams(offset, bp per repeat, efficiency).
